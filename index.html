@@ -7,122 +7,154 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f1117;--card:#181c27;--border:#252a3a;
-  --text:#e8eaf0;--muted:#6b7280;--accent:#3b82f6;
-  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+  --bg:#1c1812;--card:#272019;--border:#3a3024;--border-soft:#332a20;
+  --text:#f5efe3;--muted:#a89980;--accent:#c2410c;--accent-bright:#ea580c;
+  --green:#65a30d;--red:#dc2626;--amber:#d97706;--wheat:#e8b84b;
+  --font-display:'Outfit',sans-serif;--font-body:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
 }
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(circle at 15% 0%, rgba(194,65,12,0.08), transparent 45%),radial-gradient(circle at 90% 10%, rgba(101,163,13,0.06), transparent 40%)}
+h1,h2,h3,.section-title,.auth-title,.uname{font-family:var(--font-display)}
+
+/* Brand strip — logo slots */
+.brand-strip{display:flex;align-items:center;justify-content:center;gap:28px;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--border-soft)}
+.brand-strip img{height:28px;width:auto;object-fit:contain;filter:grayscale(0.15) brightness(1.05)}
+.brand-divider{width:1px;height:20px;background:var(--border)}
+.route-line{height:3px;background:linear-gradient(90deg,var(--accent) 0%,var(--wheat) 50%,var(--green) 100%);opacity:0.7}
 
 /* AUTH */
 #auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;max-width:400px}
-.auth-logo{font-size:32px;text-align:center;margin-bottom:10px}
-.auth-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
-.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:22px}
-.field{margin-bottom:13px}
-.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
-.field input{width:100%;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s}
-.field input:focus{border-color:var(--accent)}
-.abtn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
-.abtn:active{opacity:.85}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:36px 28px;width:100%;max-width:400px;position:relative;box-shadow:0 24px 60px -20px rgba(0,0,0,0.5)}
+.auth-card::before{content:'';position:absolute;top:0;left:24px;right:24px;height:3px;background:linear-gradient(90deg,var(--accent),var(--wheat))}
+.auth-logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-bright));display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px}
+.auth-title{font-size:24px;font-weight:700;text-align:center;margin-bottom:4px;letter-spacing:-0.01em}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:26px;font-family:var(--font-mono);letter-spacing:0.02em}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--wheat);font-weight:600;margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-mono)}
+.field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:11px 14px;font-size:14px;outline:none;font-family:var(--font-body);transition:border-color .2s,box-shadow .2s}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(194,65,12,0.15)}
+.abtn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-display);margin-top:6px;letter-spacing:0.01em;transition:background .15s,transform .1s}
+.abtn:hover{background:var(--accent-bright)}
+.abtn:active{transform:scale(0.98)}
 .err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:16px}
-.atoggle{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
-.atoggle span{color:var(--accent);cursor:pointer;font-weight:600}
-.notice{background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.atoggle{text-align:center;margin-top:16px;font-size:13px;color:var(--muted)}
+.atoggle span{color:var(--wheat);cursor:pointer;font-weight:600}
+.notice{background:var(--bg);border:1px solid var(--border);border-left:3px solid var(--wheat);border-radius:4px;padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:18px}
 .notice strong{color:var(--text)}
 
 /* APP */
 #app{display:none;min-height:100vh;flex-direction:column}
-.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.tl{display:flex;align-items:center;gap:10px}
-.av{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
-.uname{font-weight:700;font-size:14px}
-.urole{font-size:11px;color:var(--muted)}
-.lout{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit}
+.topbar{background:var(--card);border-bottom:1px solid var(--border-soft);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.tl{display:flex;align-items:center;gap:11px}
+.av{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent-bright));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;font-family:var(--font-display)}
+.uname{font-weight:600;font-size:14px}
+.urole{font-size:11px;color:var(--wheat);font-family:var(--font-mono);letter-spacing:0.03em}
+.lout{background:none;border:1px solid var(--border);color:var(--muted);padding:7px 12px;border-radius:4px;font-size:12px;cursor:pointer;font-family:var(--font-body);transition:all .15s}
 .lout:hover{color:var(--red);border-color:var(--red)}
 
 /* STATUS BAR */
-.status-bar{background:var(--card);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.sdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
-.sdot.green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-bar{background:var(--card);border-bottom:1px solid var(--border-soft);padding:9px 16px;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);font-family:var(--font-mono)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.sdot.green{background:var(--green);box-shadow:0 0 8px var(--green)}
 .sdot.pulse{animation:p 1.4s infinite}
 @keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* MAP */
-.map-box{height:240px;background:#0a0e1a;position:relative;flex-shrink:0}
-.map-box iframe{width:100%;height:100%;border:none}
-.map-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted)}
-.map-ph .ico{font-size:36px}
-.map-ph p{font-size:12px;text-align:center;max-width:180px}
+.map-box{height:240px;background:#15110c;position:relative;flex-shrink:0;border-bottom:1px solid var(--border-soft)}
+.map-box iframe{width:100%;height:100%;border:none;filter:sepia(0.15) saturate(0.9)}
+.map-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)}
+.map-ph .ico{font-size:34px;opacity:0.6}
+.map-ph p{font-size:12px;text-align:center;max-width:180px;font-family:var(--font-mono)}
 
 /* COORDS */
-.coords-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)}
-.crd{background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
-.crd .cl{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
-.crd .cv{font-size:12px;font-weight:700;font-family:monospace;color:var(--text)}
-.crd .cv.dim{color:var(--muted);font-family:inherit;font-size:11px}
+.coords-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border-soft);border-bottom:1px solid var(--border-soft)}
+.crd{background:var(--card);padding:10px 12px}
+.crd .cl{font-size:9px;color:var(--wheat);font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;font-family:var(--font-mono)}
+.crd .cv{font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--text)}
+.crd .cv.dim{color:var(--muted);font-family:var(--font-body);font-size:11px}
 
 /* TRACK BUTTONS */
-.track-section{padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);display:flex;gap:8px}
-.tbtn{flex:1;padding:12px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.track-section{padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border-soft);display:flex;gap:8px}
+.tbtn{flex:1;padding:13px;border:none;border-radius:4px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-display);letter-spacing:0.01em;transition:transform .1s,filter .15s}
 .tbtn.start{background:var(--green);color:#fff}
 .tbtn.stop{background:var(--red);color:#fff}
-.tbtn:active{opacity:.85}
+.tbtn:hover{filter:brightness(1.1)}
+.tbtn:active{transform:scale(0.98)}
 
 /* VISIT FORM */
-.section{padding:16px}
-.section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.vfield{margin-bottom:12px}
-.vfield label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
-.vfield input{width:100%;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s}
-.vfield input:focus{border-color:var(--accent)}
-.vfield input::placeholder{color:var(--muted)}
+.section{padding:18px 16px}
+.section-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.vfield{margin-bottom:13px}
+.vfield label{display:block;font-size:10.5px;color:var(--wheat);font-weight:600;margin-bottom:6px;letter-spacing:.05em;text-transform:uppercase;font-family:var(--font-mono)}
+.vfield input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:10px 13px;font-size:14px;outline:none;font-family:var(--font-body);transition:border-color .2s,box-shadow .2s}
+.vfield input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(194,65,12,0.15)}
+.vfield input::placeholder{color:var(--muted);opacity:0.6}
+
+.vfield select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:10px 13px;font-size:14px;outline:none;font-family:var(--font-body);transition:border-color .2s}
+.vfield select:focus{border-color:var(--accent)}
+.photo-btn{width:100%;padding:12px;background:var(--bg);border:1px dashed var(--border);color:var(--text);border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .2s}
+.photo-btn:hover{border-color:var(--wheat)}
+.photo-btn.has-photo{border-color:var(--green);border-style:solid;color:var(--green)}
+.photo-preview{margin-top:8px;border-radius:4px;overflow:hidden;border:1px solid var(--border);max-width:100%}
+.photo-preview img{width:100%;display:block}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* Location pick button */
-.loc-btn{width:100%;padding:11px;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .2s}
+.loc-btn{width:100%;padding:12px;background:var(--bg);border:1px dashed var(--border);color:var(--text);border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-body);display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .2s}
 .loc-btn:hover,.loc-btn:active{border-color:var(--accent)}
-.loc-btn.picked{border-color:var(--green);color:var(--green)}
-.loc-preview{font-size:11px;color:var(--muted);margin-top:5px;font-family:monospace}
+.loc-btn.picked{border-color:var(--green);border-style:solid;color:var(--green)}
+.loc-preview{font-size:11px;color:var(--muted);margin-top:6px;font-family:var(--font-mono)}
 
-.submit-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
-.submit-btn:active{opacity:.85}
+.submit-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font-display);margin-top:6px;letter-spacing:0.01em;transition:background .15s,transform .1s}
+.submit-btn:hover{background:var(--accent-bright)}
+.submit-btn:active{transform:scale(0.98)}
 
 /* VISITS LOG */
-.visit-card{background:#0f1117;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px}
-.vc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.vc-name{font-weight:700;font-size:14px}
-.vc-time{font-size:11px;color:var(--muted)}
+.visit-card{background:var(--card);border:1px solid var(--border-soft);border-left:3px solid var(--wheat);border-radius:4px;padding:14px 16px;margin-bottom:10px}
+.vc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.vc-name{font-weight:700;font-size:14.5px;font-family:var(--font-display)}
+.vc-time{font-size:11px;color:var(--muted);font-family:var(--font-mono)}
 .vc-store{font-size:13px;color:var(--muted);margin-bottom:4px}
 .vc-mobile{font-size:12px;color:var(--muted)}
-.vc-coords{font-size:11px;font-family:monospace;color:var(--accent);margin-top:6px}
-.vc-map-link{font-size:11px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+.vc-coords{font-size:11px;font-family:var(--font-mono);color:var(--accent-bright);margin-top:8px}
+.vc-map-link{font-size:11px;color:var(--accent-bright);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:4px;font-weight:600}
 
 /* TABS */
-.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 16px}
-.tab{flex:1;padding:11px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border-soft);padding:0 16px}
+.tab{flex:1;padding:13px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-family:var(--font-display)}
+.tab.active{color:var(--accent-bright);border-bottom-color:var(--accent-bright)}
 
 .tab-content{display:none}
 .tab-content.active{display:block}
 
 /* TOAST */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:#1e2433;border:1px solid var(--border);padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent-bright);border-radius:4px;padding:11px 18px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 
-.empty{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px}
+.empty{text-align:center;padding:36px 16px;color:var(--muted);font-size:13px;font-family:var(--font-mono)}
 </style>
 </head>
 <body>
+
+<!-- ── BRAND STRIP — replace src paths with your own logo files ── -->
+<div class="brand-strip">
+  <img src="logo-suguna.png" alt="Suguna Foods" onerror="this.style.display='none'"/>
+  <div class="brand-divider"></div>
+  <img src="logo-praxis.png" alt="Praxis Global Alliance" onerror="this.style.display='none'"/>
+  <div class="brand-divider"></div>
+  <img src="logo-partner3.png" alt="Partner" onerror="this.style.display='none'"/>
+</div>
+<div class="route-line"></div>
 
 <!-- AUTH -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">📍</div>
     <div class="auth-title">SalesTrack</div>
-    <div class="auth-sub">Field salesperson app</div>
+    <div class="auth-sub">field route · log visits · stay connected</div>
 
     <div id="lv">
       <div class="field">
@@ -225,9 +257,57 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
         <input type="tel" id="v-mobile" placeholder="e.g. 9876543210"/>
       </div>
       <div class="vfield">
-        <label>Location / Area</label>
+        <label>Area</label>
         <input type="text" id="v-location" placeholder="e.g. Andheri West, Mumbai"/>
       </div>
+
+      <div class="field-row">
+        <div class="vfield">
+          <label>Present purchase</label>
+          <input type="text" id="v-purchase" placeholder="e.g. 50 kg feed"/>
+        </div>
+        <div class="vfield">
+          <label>Selling price</label>
+          <input type="text" id="v-price" placeholder="e.g. ₹2200"/>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="vfield">
+          <label>Credit period</label>
+          <input type="text" id="v-credit-period" placeholder="e.g. 15 days"/>
+        </div>
+        <div class="vfield">
+          <label>Credit outstanding</label>
+          <input type="text" id="v-credit-due" placeholder="e.g. ₹5000"/>
+        </div>
+      </div>
+
+      <div class="vfield">
+        <label>Weekly birds quantity</label>
+        <input type="text" id="v-birds" placeholder="e.g. 2000 birds/week"/>
+      </div>
+
+      <div class="vfield">
+        <label>Visit type</label>
+        <select id="v-visit-type">
+          <option value="General">General</option>
+          <option value="Follow up">Follow up</option>
+          <option value="Conversion">Conversion</option>
+          <option value="Complaint">Complaint</option>
+          <option value="Payment collection">Payment collection</option>
+        </select>
+      </div>
+
+      <div class="vfield">
+        <label>Shop photo</label>
+        <button class="photo-btn" id="photo-btn" onclick="document.getElementById('photo-input').click()">
+          📷 Tap to take / upload shop photo
+        </button>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(event)"/>
+        <div class="photo-preview" id="photo-preview" style="display:none"></div>
+      </div>
+
       <div class="vfield">
         <label>Mark GPS location</label>
         <button class="loc-btn" id="loc-btn" onclick="pickLocation()">
@@ -236,7 +316,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
         <div class="loc-preview" id="loc-preview"></div>
       </div>
       <div class="vfield">
-        <label>Notes (optional)</label>
+        <label>Remarks (optional)</label>
         <input type="text" id="v-notes" placeholder="e.g. Interested in product A, follow up next week"/>
       </div>
 
@@ -279,6 +359,7 @@ let currentUser = null, userName = '', userMobile = '';
 let watchId = null, pingInterval = null, pingCount = 0;
 let pickedLat = null, pickedLng = null;
 let currentLat = null, currentLng = null;
+let photoDataUrl = null;
 
 // ── Auth state ───────────────────────────────
 auth.onAuthStateChanged(user => {
@@ -480,17 +561,44 @@ function pickLocation(){
   },{enableHighAccuracy:true,timeout:12000});
 }
 
+// ── Photo capture/upload ──────────────────────
+function handlePhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 4*1024*1024){ toast('Photo too large. Please use a smaller image.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    photoDataUrl = e.target.result;
+    document.getElementById('photo-btn').className = 'photo-btn has-photo';
+    document.getElementById('photo-btn').textContent = '✓ Photo captured — tap to retake';
+    const pv = document.getElementById('photo-preview');
+    pv.style.display = 'block';
+    pv.innerHTML = `<img src="${photoDataUrl}"/>`;
+  };
+  reader.readAsDataURL(file);
+}
+
 // ── Submit visit log ─────────────────────────
 function submitVisit(){
   const store=document.getElementById('v-store').value.trim();
   const contact=document.getElementById('v-contact').value.trim();
   const mobile=document.getElementById('v-mobile').value.trim();
   const location=document.getElementById('v-location').value.trim();
+  const purchase=document.getElementById('v-purchase').value.trim();
+  const price=document.getElementById('v-price').value.trim();
+  const creditPeriod=document.getElementById('v-credit-period').value.trim();
+  const creditDue=document.getElementById('v-credit-due').value.trim();
+  const birds=document.getElementById('v-birds').value.trim();
+  const visitType=document.getElementById('v-visit-type').value;
   const notes=document.getElementById('v-notes').value.trim();
   document.getElementById('verr').textContent='';
   if(!store){ document.getElementById('verr').textContent='Store name is required.'; return; }
   if(!mobile){ document.getElementById('verr').textContent='Mobile number is required.'; return; }
   if(pickedLat===null){ document.getElementById('verr').textContent='Please capture GPS location first.'; return; }
+
+  const submitBtn = document.querySelector('.submit-btn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting...';
 
   db.collection('visits').add({
     salesperson: userName,
@@ -501,6 +609,13 @@ function submitVisit(){
     contactName: contact,
     mobileNo: mobile,
     locationArea: location,
+    presentPurchase: purchase,
+    sellingPrice: price,
+    creditPeriod: creditPeriod,
+    creditOutstanding: creditDue,
+    weeklyBirdsQty: birds,
+    visitType: visitType,
+    photo: photoDataUrl || null,
     lat: pickedLat,
     lng: pickedLng,
     notes: notes,
@@ -512,38 +627,72 @@ function submitVisit(){
     document.getElementById('v-contact').value='';
     document.getElementById('v-mobile').value='';
     document.getElementById('v-location').value='';
+    document.getElementById('v-purchase').value='';
+    document.getElementById('v-price').value='';
+    document.getElementById('v-credit-period').value='';
+    document.getElementById('v-credit-due').value='';
+    document.getElementById('v-birds').value='';
+    document.getElementById('v-visit-type').value='General';
     document.getElementById('v-notes').value='';
     pickedLat=null; pickedLng=null;
+    photoDataUrl=null;
     document.getElementById('loc-btn').className='loc-btn';
     document.getElementById('loc-btn').textContent='📍 Tap to capture current GPS coordinates';
     document.getElementById('loc-preview').textContent='';
+    document.getElementById('photo-btn').className='photo-btn';
+    document.getElementById('photo-btn').textContent='📷 Tap to take / upload shop photo';
+    document.getElementById('photo-preview').style.display='none';
+    document.getElementById('photo-preview').innerHTML='';
+    document.getElementById('photo-input').value='';
     loadTodayVisits();
     switchTab('history');
-  }).catch(e=>{ document.getElementById('verr').textContent='Error: '+e.message; });
+  }).catch(e=>{ document.getElementById('verr').textContent='Error: '+e.message; })
+  .finally(()=>{
+    submitBtn.disabled = false;
+    submitBtn.textContent = '✓ Submit visit log';
+  });
 }
 
 // ── Load today's visits ───────────────────────
 function loadTodayVisits(){
   const start=new Date(); start.setHours(0,0,0,0);
+  // Single where() clause only — no composite index needed.
+  // Filter by today's date and sort client-side instead.
   db.collection('visits')
     .where('salespersonUid','==',currentUser.uid)
-    .where('timestamp','>=',firebase.firestore.Timestamp.fromDate(start))
-    .orderBy('timestamp','desc')
     .get().then(snap=>{
       const el=document.getElementById('visits-list');
-      if(snap.empty){ el.innerHTML='<div class="empty">No visits logged today yet.</div>'; return; }
-      el.innerHTML=snap.docs.map(doc=>{
-        const d=doc.data();
+      const todays = snap.docs
+        .map(doc=>({id:doc.id, data:doc.data()}))
+        .filter(d=>{
+          const t = d.data.timestamp?.toDate ? d.data.timestamp.toDate() : null;
+          return t && t >= start;
+        })
+        .sort((a,b)=>{
+          const ta=a.data.timestamp?.toMillis()||0, tb=b.data.timestamp?.toMillis()||0;
+          return tb-ta;
+        });
+      if(!todays.length){ el.innerHTML='<div class="empty">No visits logged today yet.</div>'; return; }
+      el.innerHTML=todays.map(({data:d})=>{
         const t=d.timestamp?.toDate?d.timestamp.toDate().toLocaleTimeString():'—';
+        const typeColors={'General':'var(--muted)','Follow up':'var(--wheat)','Conversion':'var(--green)','Complaint':'var(--red)','Payment collection':'var(--accent-bright)'};
+        const tColor = typeColors[d.visitType] || 'var(--muted)';
         return `<div class="visit-card">
           <div class="vc-header">
             <div class="vc-name">${d.storeName||'—'}</div>
             <div class="vc-time">${t}</div>
           </div>
+          <div style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${tColor}22;color:${tColor};margin-bottom:6px">${d.visitType||'General'}</div>
           <div class="vc-store">👤 ${d.contactName||'—'}</div>
           <div class="vc-mobile">📞 ${d.mobileNo||'—'}</div>
           ${d.locationArea?`<div class="vc-mobile">📍 ${d.locationArea}</div>`:''}
+          ${d.presentPurchase?`<div class="vc-mobile">📦 Purchase: ${d.presentPurchase}</div>`:''}
+          ${d.sellingPrice?`<div class="vc-mobile">💰 Price: ${d.sellingPrice}</div>`:''}
+          ${d.creditPeriod?`<div class="vc-mobile">📅 Credit period: ${d.creditPeriod}</div>`:''}
+          ${d.creditOutstanding?`<div class="vc-mobile">💳 Outstanding: ${d.creditOutstanding}</div>`:''}
+          ${d.weeklyBirdsQty?`<div class="vc-mobile">🐔 Weekly birds: ${d.weeklyBirdsQty}</div>`:''}
           ${d.notes?`<div class="vc-mobile" style="margin-top:4px">📝 ${d.notes}</div>`:''}
+          ${d.photo?`<div class="photo-preview" style="display:block;margin-top:8px"><img src="${d.photo}"/></div>`:''}
           <div class="vc-coords">GPS: ${d.lat?.toFixed(6)||'—'}, ${d.lng?.toFixed(6)||'—'}</div>
           <a class="vc-map-link" href="https://maps.google.com/maps?q=${d.lat},${d.lng}" target="_blank">
             🗺 Open in Google Maps ↗
