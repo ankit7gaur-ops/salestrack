@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>SalesTrack – Field App</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--card:#181c27;--border:#252a3a;
+  --text:#e8eaf0;--muted:#6b7280;--accent:#3b82f6;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* AUTH */
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;max-width:400px}
+.auth-logo{font-size:32px;text-align:center;margin-bottom:10px}
+.auth-title{font-size:20px;font-weight:800;text-align:center;margin-bottom:4px}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:22px}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.field input{width:100%;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s}
+.field input:focus{border-color:var(--accent)}
+.abtn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
+.abtn:active{opacity:.85}
+.err{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:16px}
+.atoggle{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
+.atoggle span{color:var(--accent);cursor:pointer;font-weight:600}
+.notice{background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:16px}
+.notice strong{color:var(--text)}
+
+/* APP */
+#app{display:none;min-height:100vh;flex-direction:column}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.tl{display:flex;align-items:center;gap:10px}
+.av{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.uname{font-weight:700;font-size:14px}
+.urole{font-size:11px;color:var(--muted)}
+.lout{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 11px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit}
+.lout:hover{color:var(--red);border-color:var(--red)}
+
+/* STATUS BAR */
+.status-bar{background:var(--card);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.sdot.green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.sdot.pulse{animation:p 1.4s infinite}
+@keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* MAP */
+.map-box{height:240px;background:#0a0e1a;position:relative;flex-shrink:0}
+.map-box iframe{width:100%;height:100%;border:none}
+.map-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--muted)}
+.map-ph .ico{font-size:36px}
+.map-ph p{font-size:12px;text-align:center;max-width:180px}
+
+/* COORDS */
+.coords-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)}
+.crd{background:#0f1117;border:1px solid var(--border);border-radius:8px;padding:8px 10px}
+.crd .cl{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px}
+.crd .cv{font-size:12px;font-weight:700;font-family:monospace;color:var(--text)}
+.crd .cv.dim{color:var(--muted);font-family:inherit;font-size:11px}
+
+/* TRACK BUTTONS */
+.track-section{padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);display:flex;gap:8px}
+.tbtn{flex:1;padding:12px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.tbtn.start{background:var(--green);color:#fff}
+.tbtn.stop{background:var(--red);color:#fff}
+.tbtn:active{opacity:.85}
+
+/* VISIT FORM */
+.section{padding:16px}
+.section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.vfield{margin-bottom:12px}
+.vfield label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+.vfield input{width:100%;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 13px;font-size:14px;outline:none;font-family:inherit;transition:border-color .2s}
+.vfield input:focus{border-color:var(--accent)}
+.vfield input::placeholder{color:var(--muted)}
+
+/* Location pick button */
+.loc-btn{width:100%;padding:11px;background:#0f1117;border:1px solid var(--border);color:var(--text);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px;transition:border-color .2s}
+.loc-btn:hover,.loc-btn:active{border-color:var(--accent)}
+.loc-btn.picked{border-color:var(--green);color:var(--green)}
+.loc-preview{font-size:11px;color:var(--muted);margin-top:5px;font-family:monospace}
+
+.submit-btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}
+.submit-btn:active{opacity:.85}
+
+/* VISITS LOG */
+.visit-card{background:#0f1117;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.vc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.vc-name{font-weight:700;font-size:14px}
+.vc-time{font-size:11px;color:var(--muted)}
+.vc-store{font-size:13px;color:var(--muted);margin-bottom:4px}
+.vc-mobile{font-size:12px;color:var(--muted)}
+.vc-coords{font-size:11px;font-family:monospace;color:var(--accent);margin-top:6px}
+.vc-map-link{font-size:11px;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:3px;margin-top:4px}
+
+/* TABS */
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);padding:0 16px}
+.tab{flex:1;padding:11px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:#1e2433;border:1px solid var(--border);padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+.empty{text-align:center;padding:30px 16px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">📍</div>
+    <div class="auth-title">SalesTrack</div>
+    <div class="auth-sub">Field salesperson app</div>
+
+    <div id="lv">
+      <div class="field">
+        <label>Mobile number</label>
+        <input type="tel" id="le" placeholder="e.g. 9876543210" autocomplete="tel" inputmode="numeric" maxlength="10"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+      <button class="abtn" id="btn-login" onclick="doLogin()">Sign in</button>
+      <div class="err" id="lerr"></div>
+      <div class="atoggle">New here? <span onclick="showReg()">Create account</span></div>
+    </div>
+
+    <div id="rv" style="display:none">
+      <div class="notice">
+        <strong>New account?</strong> Each salesperson needs their own unique mobile number. Do not use a number that's already registered.
+      </div>
+      <div class="field">
+        <label>Your full name</label>
+        <input type="text" id="rn" placeholder="e.g. Rahul Sharma"/>
+      </div>
+      <div class="field">
+        <label>Mobile number</label>
+        <input type="tel" id="rm" placeholder="e.g. 9876543210" inputmode="numeric" maxlength="10"/>
+      </div>
+      <div class="field">
+        <label>Password (min 6 chars)</label>
+        <input type="password" id="rp" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <button class="abtn" id="btn-register" onclick="doRegister()">Create my account</button>
+      <div class="err" id="rerr"></div>
+      <div class="atoggle">Already registered? <span onclick="showLogin()">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="tl">
+      <div class="av" id="av">?</div>
+      <div>
+        <div class="uname" id="uname">...</div>
+        <div class="urole">Salesperson</div>
+      </div>
+    </div>
+    <button class="lout" onclick="doLogout()">Sign out</button>
+  </div>
+
+  <div class="status-bar">
+    <div class="sdot" id="sdot"></div>
+    <span id="slabel">Not tracking — press Start to share location</span>
+  </div>
+
+  <div class="map-box">
+    <div class="map-ph" id="mph">
+      <div class="ico">🗺</div>
+      <p>Your live location will appear here</p>
+    </div>
+    <iframe id="mframe" style="display:none" allowfullscreen></iframe>
+  </div>
+
+  <div class="coords-row">
+    <div class="crd"><div class="cl">Latitude</div><div class="cv dim" id="clat">—</div></div>
+    <div class="crd"><div class="cl">Longitude</div><div class="cv dim" id="clng">—</div></div>
+    <div class="crd"><div class="cl">Pings</div><div class="cv" id="cpings" style="color:var(--green)">0</div></div>
+  </div>
+
+  <div class="track-section">
+    <button class="tbtn start" id="btn-start" onclick="startTracking()">▶ Start tracking</button>
+    <button class="tbtn stop" id="btn-stop" onclick="stopTracking()" style="display:none">■ Stop</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('visit')">📝 Log a visit</div>
+    <div class="tab" onclick="switchTab('history')">📋 My visits today</div>
+  </div>
+
+  <!-- LOG VISIT TAB -->
+  <div class="tab-content active" id="tab-visit">
+    <div class="section">
+      <div class="section-title">📝 Log store visit</div>
+
+      <div class="vfield">
+        <label>Your name</label>
+        <input type="text" id="v-name" placeholder="Auto-filled from your account" readonly style="color:var(--muted)"/>
+      </div>
+      <div class="vfield">
+        <label>Store / Customer name</label>
+        <input type="text" id="v-store" placeholder="e.g. Sharma General Store"/>
+      </div>
+      <div class="vfield">
+        <label>Store owner / Contact name</label>
+        <input type="text" id="v-contact" placeholder="e.g. Ramesh Sharma"/>
+      </div>
+      <div class="vfield">
+        <label>Mobile number</label>
+        <input type="tel" id="v-mobile" placeholder="e.g. 9876543210"/>
+      </div>
+      <div class="vfield">
+        <label>Location / Area</label>
+        <input type="text" id="v-location" placeholder="e.g. Andheri West, Mumbai"/>
+      </div>
+      <div class="vfield">
+        <label>Mark GPS location</label>
+        <button class="loc-btn" id="loc-btn" onclick="pickLocation()">
+          📍 Tap to capture current GPS coordinates
+        </button>
+        <div class="loc-preview" id="loc-preview"></div>
+      </div>
+      <div class="vfield">
+        <label>Notes (optional)</label>
+        <input type="text" id="v-notes" placeholder="e.g. Interested in product A, follow up next week"/>
+      </div>
+
+      <button class="submit-btn" onclick="submitVisit()">✓ Submit visit log</button>
+      <div class="err" id="verr" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div class="tab-content" id="tab-history">
+    <div class="section">
+      <div class="section-title">📋 Today's visits</div>
+      <div id="visits-list"><div class="empty">No visits logged today yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Firebase config ──────────────────────────
+// ── Catch-all so the screen never silently freezes ──
+window.addEventListener('error', function(e){
+  console.error('App error:', e.message);
+});
+window.addEventListener('unhandledrejection', function(e){
+  console.error('Unhandled promise rejection:', e.reason);
+});
+
+firebase.initializeApp({
+  apiKey: "AIzaSyBkX-0rCCA-RuZfHh_NP1O9IkSSDxTMbSo",
+  authDomain: "salestrack-gps.firebaseapp.com",
+  projectId: "salestrack-gps",
+  appId: "1:630046662623:web:3e42b7fca19d96962c2e6a"
+});
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let currentUser = null, userName = '', userMobile = '';
+let watchId = null, pingInterval = null, pingCount = 0;
+let pickedLat = null, pickedLng = null;
+let currentLat = null, currentLng = null;
+
+// ── Auth state ───────────────────────────────
+auth.onAuthStateChanged(user => {
+  if(user){
+    currentUser = user;
+    db.collection('users').doc(user.uid).get().then(doc => {
+      if(doc.exists){
+        const d = doc.data();
+        userName = d.name || '';
+        userMobile = d.mobile || '';
+        document.getElementById('uname').textContent = userName;
+        document.getElementById('av').textContent = (userName||'?')[0].toUpperCase();
+        document.getElementById('v-name').value = userName;
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+        loadTodayVisits();
+      } else { auth.signOut(); }
+    });
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ── Auth actions ─────────────────────────────
+let authBusy = false; // prevents double-submission on mobile (touch+click firing twice)
+
+function showReg(){ document.getElementById('lv').style.display='none'; document.getElementById('rv').style.display='block'; }
+function showLogin(){ document.getElementById('rv').style.display='none'; document.getElementById('lv').style.display='block'; }
+
+function phoneToEmail(phone){
+  const clean = phone.replace(/[^0-9]/g,'');
+  return clean + '@salestrack.app';
+}
+function isValidPhone(phone){
+  return /^[0-9]{10}$/.test(phone.replace(/[^0-9]/g,''));
+}
+
+function setBtnLoading(btnId, loading, idleText){
+  const btn = document.getElementById(btnId);
+  if(loading){
+    btn.disabled = true;
+    btn.dataset.idleText = idleText;
+    btn.textContent = 'Please wait...';
+  } else {
+    btn.disabled = false;
+    btn.textContent = btn.dataset.idleText || idleText;
+  }
+}
+
+function doLogin(){
+  if(authBusy) return; // ignore duplicate taps
+  const phone=document.getElementById('le').value.trim(), p=document.getElementById('lp').value;
+  document.getElementById('lerr').textContent='';
+  if(!phone||!p){ document.getElementById('lerr').textContent='Enter mobile number and password.'; return; }
+  if(!isValidPhone(phone)){ document.getElementById('lerr').textContent='Enter a valid 10-digit mobile number.'; return; }
+
+  authBusy = true;
+  setBtnLoading('btn-login', true, 'Sign in');
+  // Safety timeout — never let the button stay stuck forever
+  const safety = setTimeout(()=>{
+    authBusy = false;
+    setBtnLoading('btn-login', false, 'Sign in');
+    document.getElementById('lerr').textContent = 'Taking too long. Check your internet connection and try again.';
+  }, 12000);
+
+  const email = phoneToEmail(phone);
+  auth.signInWithEmailAndPassword(email,p)
+    .then(()=>{ clearTimeout(safety); })
+    .catch(err=>{
+      clearTimeout(safety);
+      document.getElementById('lerr').textContent=fErr(err.code);
+    })
+    .finally(()=>{
+      authBusy = false;
+      setBtnLoading('btn-login', false, 'Sign in');
+    });
+}
+
+function doRegister(){
+  if(authBusy) return; // ignore duplicate taps
+  const name=document.getElementById('rn').value.trim();
+  const mobile=document.getElementById('rm').value.trim();
+  const pass=document.getElementById('rp').value;
+  document.getElementById('rerr').textContent='';
+  if(!name||!mobile||!pass){ document.getElementById('rerr').textContent='Fill all required fields.'; return; }
+  if(!isValidPhone(mobile)){ document.getElementById('rerr').textContent='Enter a valid 10-digit mobile number.'; return; }
+  if(pass.length<6){ document.getElementById('rerr').textContent='Password must be at least 6 characters.'; return; }
+
+  authBusy = true;
+  setBtnLoading('btn-register', true, 'Create my account');
+  const safety = setTimeout(()=>{
+    authBusy = false;
+    setBtnLoading('btn-register', false, 'Create my account');
+    document.getElementById('rerr').textContent = 'Taking too long. Check your internet connection and try again.';
+  }, 12000);
+
+  const email = phoneToEmail(mobile);
+  auth.createUserWithEmailAndPassword(email,pass).then(cred=>{
+    return db.collection('users').doc(cred.user.uid).set({
+      name, mobile, email, role:'salesperson',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  })
+  .then(()=>{ clearTimeout(safety); })
+  .catch(err=>{
+    clearTimeout(safety);
+    document.getElementById('rerr').textContent=fErr(err.code);
+  })
+  .finally(()=>{
+    authBusy = false;
+    setBtnLoading('btn-register', false, 'Create my account');
+  });
+}
+
+function doLogout(){ stopTracking(); auth.signOut(); }
+
+function fErr(code){
+  const m={
+    'auth/invalid-email':'Invalid mobile number format.',
+    'auth/user-not-found':'No account found with this number. Please create one.',
+    'auth/wrong-password':'Wrong password.',
+    'auth/invalid-credential':'Incorrect mobile number or password.',
+    'auth/email-already-in-use':'This mobile number is already registered — please go back and sign in instead.',
+    'auth/weak-password':'Password must be at least 6 characters.',
+    'auth/too-many-requests':'Too many attempts. Wait a moment and try again.',
+    'auth/network-request-failed':'No internet connection. Please check your network and try again.'
+  };
+  return m[code]||('Error: '+code);
+}
+
+// ── GPS Tracking ─────────────────────────────
+function startTracking(){
+  if(!navigator.geolocation){ toast('GPS not available on this device'); return; }
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-stop').style.display='block';
+  document.getElementById('sdot').className='sdot green pulse';
+  document.getElementById('slabel').textContent='● Live — sending location every 30s';
+  const opts={enableHighAccuracy:true,maximumAge:10000,timeout:15000};
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,opts);
+  pingInterval=setInterval(()=>navigator.geolocation.getCurrentPosition(onPos,onErr,opts),30000);
+  toast('Tracking started ✓');
+}
+
+function stopTracking(){
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(pingInterval){clearInterval(pingInterval);pingInterval=null;}
+  document.getElementById('btn-start').style.display='block';
+  document.getElementById('btn-stop').style.display='none';
+  document.getElementById('sdot').className='sdot';
+  document.getElementById('slabel').textContent='Not tracking';
+}
+
+function onPos(pos){
+  const {latitude:lat,longitude:lng,accuracy}=pos.coords;
+  currentLat=lat; currentLng=lng;
+  const ts=firebase.firestore.FieldValue.serverTimestamp();
+  db.collection('locations').doc(currentUser.uid).set({
+    lat,lng,accuracy,name:userName,mobile:userMobile,
+    email:currentUser.email,uid:currentUser.uid,timestamp:ts
+  });
+  db.collection('location_history').add({
+    lat,lng,accuracy,name:userName,mobile:userMobile,
+    email:currentUser.email,uid:currentUser.uid,timestamp:ts
+  });
+  pingCount++;
+  document.getElementById('clat').textContent=lat.toFixed(6);
+  document.getElementById('clat').className='cv';
+  document.getElementById('clng').textContent=lng.toFixed(6);
+  document.getElementById('clng').className='cv';
+  document.getElementById('cpings').textContent=pingCount;
+  document.getElementById('mph').style.display='none';
+  const fr=document.getElementById('mframe');
+  fr.style.display='block';
+  fr.src=`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+}
+
+function onErr(e){
+  const m={1:'Location permission denied.',2:'Location unavailable.',3:'GPS timed out.'};
+  toast(m[e.code]||'GPS error'); stopTracking();
+}
+
+// ── Pick current GPS for visit log ────────────
+function pickLocation(){
+  if(!navigator.geolocation){ toast('GPS not available'); return; }
+  const btn=document.getElementById('loc-btn');
+  btn.textContent='⏳ Getting GPS coordinates...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    pickedLat=pos.coords.latitude;
+    pickedLng=pos.coords.longitude;
+    btn.className='loc-btn picked';
+    btn.textContent='✓ GPS location captured!';
+    document.getElementById('loc-preview').textContent=
+      `Lat: ${pickedLat.toFixed(6)}  |  Lng: ${pickedLng.toFixed(6)}`;
+    toast('GPS coordinates captured ✓');
+  }, err=>{
+    btn.textContent='📍 Tap to capture current GPS coordinates';
+    toast('Could not get GPS. Allow location and try again.');
+  },{enableHighAccuracy:true,timeout:12000});
+}
+
+// ── Submit visit log ─────────────────────────
+function submitVisit(){
+  const store=document.getElementById('v-store').value.trim();
+  const contact=document.getElementById('v-contact').value.trim();
+  const mobile=document.getElementById('v-mobile').value.trim();
+  const location=document.getElementById('v-location').value.trim();
+  const notes=document.getElementById('v-notes').value.trim();
+  document.getElementById('verr').textContent='';
+  if(!store){ document.getElementById('verr').textContent='Store name is required.'; return; }
+  if(!mobile){ document.getElementById('verr').textContent='Mobile number is required.'; return; }
+  if(pickedLat===null){ document.getElementById('verr').textContent='Please capture GPS location first.'; return; }
+
+  db.collection('visits').add({
+    salesperson: userName,
+    salespersonMobile: userMobile,
+    salespersonUid: currentUser.uid,
+    salespersonEmail: currentUser.email,
+    storeName: store,
+    contactName: contact,
+    mobileNo: mobile,
+    locationArea: location,
+    lat: pickedLat,
+    lng: pickedLng,
+    notes: notes,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(()=>{
+    toast('Visit logged successfully ✓');
+    // Clear form
+    document.getElementById('v-store').value='';
+    document.getElementById('v-contact').value='';
+    document.getElementById('v-mobile').value='';
+    document.getElementById('v-location').value='';
+    document.getElementById('v-notes').value='';
+    pickedLat=null; pickedLng=null;
+    document.getElementById('loc-btn').className='loc-btn';
+    document.getElementById('loc-btn').textContent='📍 Tap to capture current GPS coordinates';
+    document.getElementById('loc-preview').textContent='';
+    loadTodayVisits();
+    switchTab('history');
+  }).catch(e=>{ document.getElementById('verr').textContent='Error: '+e.message; });
+}
+
+// ── Load today's visits ───────────────────────
+function loadTodayVisits(){
+  const start=new Date(); start.setHours(0,0,0,0);
+  db.collection('visits')
+    .where('salespersonUid','==',currentUser.uid)
+    .where('timestamp','>=',firebase.firestore.Timestamp.fromDate(start))
+    .orderBy('timestamp','desc')
+    .get().then(snap=>{
+      const el=document.getElementById('visits-list');
+      if(snap.empty){ el.innerHTML='<div class="empty">No visits logged today yet.</div>'; return; }
+      el.innerHTML=snap.docs.map(doc=>{
+        const d=doc.data();
+        const t=d.timestamp?.toDate?d.timestamp.toDate().toLocaleTimeString():'—';
+        return `<div class="visit-card">
+          <div class="vc-header">
+            <div class="vc-name">${d.storeName||'—'}</div>
+            <div class="vc-time">${t}</div>
+          </div>
+          <div class="vc-store">👤 ${d.contactName||'—'}</div>
+          <div class="vc-mobile">📞 ${d.mobileNo||'—'}</div>
+          ${d.locationArea?`<div class="vc-mobile">📍 ${d.locationArea}</div>`:''}
+          ${d.notes?`<div class="vc-mobile" style="margin-top:4px">📝 ${d.notes}</div>`:''}
+          <div class="vc-coords">GPS: ${d.lat?.toFixed(6)||'—'}, ${d.lng?.toFixed(6)||'—'}</div>
+          <a class="vc-map-link" href="https://maps.google.com/maps?q=${d.lat},${d.lng}" target="_blank">
+            🗺 Open in Google Maps ↗
+          </a>
+        </div>`;
+      }).join('');
+    });
+}
+
+// ── Tabs ──────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const names=['visit','history'];
+    t.classList.toggle('active', names[i]===name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='history') loadTodayVisits();
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
