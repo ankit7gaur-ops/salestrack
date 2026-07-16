@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SalesTrack · Admin Dashboard</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060b12;--surface:#0d1520;--surface2:#111d2e;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --text:#f0f4f8;--muted:#7a8ea5;
+  --g1:#e31e24;--g2:#c41219;--g3:#ff4444;
+  --green:#2e7d32;--green2:#43a047;--greenbright:#66bb6a;
+  --red:#e31e24;--amber:#ff8f00;
+  --font:'Plus Jakarta Sans',sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 35% at 5% 0%,rgba(227,30,36,0.1) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 35% at 98% 0%,rgba(46,125,50,0.1) 0%,transparent 55%),
+    radial-gradient(ellipse 35% 25% at 50% 100%,rgba(227,30,36,0.05) 0%,transparent 50%);
+}
+
+/* ── BRAND STRIP ── */
+.brand-strip{
+  position:relative;z-index:100;height:52px;
+  display:flex;align-items:center;justify-content:center;gap:24px;
+  padding:0 20px;
+  background:rgba(6,11,24,0.98);
+  border-bottom:1px solid var(--border2);
+}
+.brand-strip::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),var(--g1),var(--green),transparent);opacity:0.5}
+.brand-strip img{height:28px;width:auto;object-fit:contain}
+.brand-div{width:1px;height:20px;background:var(--border2)}
+.brand-text{font-size:13px;font-weight:800;letter-spacing:0.06em;color:#fff}
+
+/* ── AUTH ── */
+#auth-screen{
+  position:relative;z-index:5;
+  min-height:calc(100vh - 52px);
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.auth-card{
+  width:100%;max-width:420px;
+  background:rgba(13,21,38,0.9);backdrop-filter:blur(30px);
+  border:1px solid var(--border2);border-radius:20px;
+  padding:40px 32px;position:relative;overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--g1),var(--g2),var(--g3));border-radius:20px 20px 0 0}
+.auth-glow1{position:absolute;top:-80px;right:-80px;width:220px;height:220px;background:radial-gradient(circle,rgba(46,125,50,0.12),transparent 70%);pointer-events:none}
+.auth-glow2{position:absolute;bottom:-60px;left:-60px;width:180px;height:180px;background:radial-gradient(circle,rgba(227,30,36,0.1),transparent 70%);pointer-events:none}
+.auth-icon{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 20px;box-shadow:0 10px 40px rgba(227,30,36,0.3)}
+.auth-title{font-size:28px;font-weight:800;text-align:center;margin-bottom:4px;background:linear-gradient(135deg,#fff 20%,var(--g1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-badge{display:inline-block;background:linear-gradient(135deg,rgba(227,30,36,0.15),rgba(46,125,50,0.15));border:1px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:11px;font-weight:600;color:var(--g1);font-family:var(--mono);letter-spacing:0.06em;margin:0 auto 28px;display:block;width:fit-content}
+.flabel{display:block;font-size:11px;font-weight:600;color:var(--g1);margin-bottom:7px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.finput,.fselect{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:12px 15px;font-size:14px;outline:none;font-family:var(--font);margin-bottom:16px;transition:all .2s}
+.finput:focus,.fselect:focus{border-color:var(--g1);background:rgba(227,30,36,0.05);box-shadow:0 0 0 3px rgba(227,30,36,0.12)}
+.finput::placeholder{color:var(--muted);opacity:0.55}
+.fselect option{background:var(--surface)}
+.fbtn{width:100%;padding:14px;margin-top:4px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s;box-shadow:0 8px 30px rgba(227,30,36,0.25)}
+.fbtn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent)}
+.fbtn:hover{transform:translateY(-1px);box-shadow:0 12px 40px rgba(227,30,36,0.35)}
+.fbtn:active{transform:scale(0.98)}
+.fbtn:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+.ferr{color:var(--red);font-size:12px;margin-top:8px;text-align:center;min-height:16px}
+.ftoggle{text-align:center;margin-top:16px;font-size:13px;color:var(--muted)}
+.ftoggle span{background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;cursor:pointer;font-weight:700}
+.setup-box{background:rgba(227,30,36,0.05);border:1px solid rgba(227,30,36,0.15);border-radius:10px;padding:14px;margin-bottom:18px;font-size:12px;color:var(--muted);line-height:1.8}
+.setup-box strong{color:var(--text)}
+
+/* ── APP SHELL ── */
+#app{display:none;height:calc(100vh - 52px);position:relative;z-index:5}
+.layout{display:flex;height:100%;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:240px;flex-shrink:0;
+  background:rgba(9,16,32,0.97);backdrop-filter:blur(20px);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:relative;
+}
+.sidebar::after{content:'';position:absolute;right:0;top:0;bottom:0;width:1px;background:linear-gradient(180deg,transparent,var(--g1),var(--g2),transparent);opacity:0.3}
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.sb-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 4px 16px rgba(227,30,36,0.3)}
+.sb-title{font-size:16px;font-weight:800;background:linear-gradient(135deg,#fff,var(--g1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sb-role{font-size:10px;color:var(--g1);font-family:var(--mono);letter-spacing:0.05em;text-transform:uppercase}
+.nav{flex:1;padding:16px 12px;overflow-y:auto}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:10px;cursor:pointer;color:var(--muted);
+  font-size:13px;font-weight:600;transition:all .2s;margin-bottom:3px;
+  position:relative;
+}
+.nav-item .ico{font-size:16px;width:20px;text-align:center}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav-item.active{color:#fff;background:rgba(227,30,36,0.1)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:25%;bottom:25%;width:3px;background:linear-gradient(180deg,var(--g1),var(--g2));border-radius:0 3px 3px 0}
+.sb-user{padding:14px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-av{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.sb-uname{font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-email{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-logout{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;border-radius:6px;transition:color .15s}
+.sb-logout:hover{color:var(--red)}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{
+  padding:16px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(9,16,32,0.9);backdrop-filter:blur(20px);flex-shrink:0;
+}
+.page-title{font-size:19px;font-weight:800;background:linear-gradient(135deg,#fff,var(--g1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.status-pill{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:var(--mono)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sdot.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.sdot.pulse{animation:dp 1.4s infinite}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.25}}
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{
+  background:rgba(13,21,38,0.8);backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-radius:14px;padding:20px;
+  position:relative;overflow:hidden;transition:border-color .2s,transform .2s;
+}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g1),var(--g2))}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-lbl{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-family:var(--mono);margin-bottom:10px}
+.stat-val{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px}
+.stat-sub{font-size:11px;color:var(--muted)}
+.stat-green{background:linear-gradient(135deg,var(--green2),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-blue{background:linear-gradient(135deg,var(--g1),var(--g2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-amber{background:linear-gradient(135deg,var(--amber),var(--g3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── LIVE MAP LAYOUT ── */
+.map-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;height:calc(100vh - 290px);min-height:380px}
+.map-card{background:rgba(13,21,38,0.8);border:1px solid var(--border);border-radius:14px;overflow:hidden;position:relative}
+.map-card iframe{width:100%;height:100%;border:none;filter:saturate(0.85)}
+.map-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted)}
+.map-empty .ico{font-size:44px;opacity:0.3}
+.map-empty p{font-size:13px;text-align:center;max-width:200px;font-family:var(--mono)}
+
+/* PERSON LIST */
+.person-list{background:rgba(13,21,38,0.8);border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.pl-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.pl-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-family:var(--mono)}
+.pl-badge{font-size:11px;background:linear-gradient(135deg,rgba(227,30,36,0.15),rgba(46,125,50,0.15));border:1px solid var(--border2);color:var(--g1);padding:3px 10px;border-radius:20px;font-family:var(--mono)}
+.pl-body{flex:1;overflow-y:auto}
+.person-item{padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;position:relative}
+.person-item:hover{background:rgba(227,30,36,0.05)}
+.person-item.selected{background:rgba(227,30,36,0.08)}
+.person-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--g1),var(--g2))}
+.pi-name{font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.pi-coords{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.pi-time{font-size:10px;color:var(--muted);margin-top:3px}
+.badge-on{background:rgba(67,160,71,0.15);color:var(--green);font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+.badge-off{background:rgba(107,138,176,0.1);color:var(--muted);font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
+
+/* ── HISTORY TABLE ── */
+.hist-filters{display:flex;gap:10px;margin-bottom:18px;align-items:center;flex-wrap:wrap}
+.hfin{background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:9px 13px;font-size:13px;outline:none;font-family:var(--font)}
+.hfin:focus{border-color:var(--g1)}
+.hfbtn{padding:9px 18px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);transition:transform .1s}
+.hfbtn:hover{transform:translateY(-1px)}
+.hfbtn.green{background:linear-gradient(135deg,var(--green2),var(--green));color:#000}
+.tbl-wrap{background:rgba(13,21,38,0.8);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:12px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);font-family:var(--mono)}
+td{padding:12px 16px;font-size:13px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(227,30,36,0.03)}
+.mono{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tbl-link{color:var(--g1);text-decoration:none;font-size:12px;font-weight:600}
+
+/* ── SETTINGS ── */
+.settings-sec{background:rgba(13,21,38,0.8);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:18px}
+.settings-sec h3{font-size:15px;font-weight:700;margin-bottom:18px;background:linear-gradient(135deg,#fff,var(--g1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border-bottom:none}
+.setting-lbl{font-size:13px;font-weight:600}
+.setting-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.setting-select{background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;outline:none;font-family:var(--font)}
+.setting-select:focus{border-color:var(--g1)}
+.toggle-wrap{position:relative;width:40px;height:22px}
+.toggle-wrap input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:22px;cursor:pointer;transition:background .2s}
+.toggle-slider::before{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform .2s}
+.toggle-wrap input:checked+.toggle-slider{background:linear-gradient(135deg,var(--g1),var(--g2))}
+.toggle-wrap input:checked+.toggle-slider::before{transform:translateX(18px)}
+.code-box{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:14px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;position:relative}
+.copy-btn{position:absolute;top:10px;right:10px;background:rgba(227,30,36,0.1);border:1px solid var(--border2);color:var(--g1);padding:4px 12px;border-radius:8px;font-size:11px;cursor:pointer;font-family:var(--font);font-weight:600}
+.copy-btn:hover{background:rgba(227,30,36,0.2)}
+.team-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.team-row:last-child{border-bottom:none}
+.team-av{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--g1),var(--g2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.team-name{font-weight:600;font-size:13px}
+.team-info{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.role-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
+.role-admin{background:rgba(227,30,36,0.15);color:var(--g1)}
+.role-sales{background:rgba(46,125,50,0.15);color:#b07dff}
+
+/* ── PAGES ── */
+.page{display:none}
+.page.active{display:block}
+
+/* ── ROUTE TRACE OVERLAY ── */
+.route-overlay{
+  display:none;position:fixed;inset:0;z-index:1000;
+  background:rgba(6,11,18,0.95);backdrop-filter:blur(20px);
+  flex-direction:column;
+}
+.route-overlay.show{display:flex}
+.route-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-bottom:1px solid var(--border2);
+  background:rgba(13,21,32,0.98);flex-shrink:0;
+}
+.route-header-left{display:flex;align-items:center;gap:12px}
+.route-header h3{font-size:16px;font-weight:700;background:linear-gradient(135deg,#fff,var(--g1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.route-close{
+  background:rgba(227,30,36,0.12);border:1px solid rgba(227,30,36,0.25);
+  color:var(--g1);padding:8px 16px;border-radius:8px;
+  font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);
+}
+.route-close:hover{background:rgba(227,30,36,0.2)}
+.route-stats{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+  background:var(--border);border-bottom:1px solid var(--border2);flex-shrink:0;
+}
+.route-stat{background:rgba(13,21,32,0.95);padding:12px 16px}
+.route-stat-lbl{font-size:9px;color:var(--g1);font-weight:600;letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);margin-bottom:4px}
+.route-stat-val{font-size:18px;font-weight:800}
+.route-stat-val.green{color:var(--greenbright)}
+.route-stat-val.red{color:var(--g1)}
+.route-map{flex:1;position:relative}
+#routeMap{width:100%;height:100%}
+.route-timeline{
+  max-height:180px;overflow-y:auto;padding:12px 16px;
+  background:rgba(13,21,32,0.98);border-top:1px solid var(--border2);flex-shrink:0;
+}
+.rt-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 0;border-bottom:1px solid var(--border);
+  font-size:12px;
+}
+.rt-item:last-child{border-bottom:none}
+.rt-dot{width:10px;height:10px;border-radius:50%;background:var(--g1);flex-shrink:0;margin-top:3px}
+.rt-dot.visit{background:var(--green2)}
+.rt-dot.checkin{background:var(--greenbright)}
+.rt-time{font-family:var(--mono);color:var(--muted);min-width:70px;font-size:11px}
+.rt-label{color:var(--text);font-weight:500}
+.rt-sub{color:var(--muted);font-size:11px;margin-top:2px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:rgba(9,16,32,0.97);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:500;transform:translateY(70px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);z-index:9999;box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){.stats-grid{grid-template-columns:1fr 1fr}.map-layout{grid-template-columns:1fr}.sidebar{width:200px}}
+@media(max-width:640px){.layout{flex-direction:column}.sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid var(--border)}.nav{display:flex;padding:8px;gap:4px;overflow-x:auto}.nav-item{flex-direction:column;gap:2px;min-width:60px;font-size:10px;padding:8px 6px}.nav-item .ico{font-size:18px}.nav-item.active::before{display:none}.stats-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- BRAND STRIP -->
+<div class="brand-strip">
+  <img src="logo-suguna.png" alt="Suguna Foods" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('span'),{textContent:'SUGUNA FOODS',className:'brand-text'}),this)"/>
+  <div class="brand-div"></div>
+  <img src="logo-praxis.png" alt="Praxis Global Alliance" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('span'),{textContent:'PRAXIS GLOBAL',className:'brand-text'}),this)"/>
+  <div class="brand-div"></div>
+  <img src="logo-partner3.png" alt="Partner" onerror="this.style.display='none'"/>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-glow1"></div><div class="auth-glow2"></div>
+    <div class="auth-icon">📍</div>
+    <div class="auth-title">SalesTrack GPS</div>
+    <div class="auth-badge">Admin Dashboard</div>
+
+    <div id="lf">
+      <label class="flabel">Email</label>
+      <input class="finput" type="email" id="login-email" placeholder="admin@company.com" autocomplete="email"/>
+      <label class="flabel">Password</label>
+      <input class="finput" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"/>
+      <button class="fbtn" id="btn-login" onclick="doLogin()">Sign in →</button>
+      <div class="ferr" id="login-err"></div>
+      <div class="ftoggle">New here? <span onclick="showReg()">Create account</span></div>
+    </div>
+
+    <div id="rf" style="display:none">
+      <div class="setup-box"><strong>First account = Admin.</strong> Register the manager first, then salesperson accounts get role "Salesperson".</div>
+      <label class="flabel">Full name</label>
+      <input class="finput" type="text" id="reg-name" placeholder="e.g. Ankit Gaur"/>
+      <label class="flabel">Email</label>
+      <input class="finput" type="email" id="reg-email" placeholder="admin@company.com" autocomplete="email"/>
+      <label class="flabel">Password</label>
+      <input class="finput" type="password" id="reg-pass" placeholder="Min 6 characters" autocomplete="new-password"/>
+      <label class="flabel">Role</label>
+      <select class="fselect" id="reg-role" style="margin-bottom:16px">
+        <option value="admin">Admin / Manager</option>
+        <option value="salesperson">Salesperson</option>
+      </select>
+      <button class="fbtn" id="btn-register" onclick="doRegister()">Create account →</button>
+      <div class="ferr" id="reg-err"></div>
+      <div class="ftoggle">Already registered? <span onclick="showLogin()">Sign in</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-icon">📍</div>
+        <div><div class="sb-title">SalesTrack</div><div class="sb-role" id="sb-role">...</div></div>
+      </div>
+      <nav class="nav">
+        <div class="nav-item active" data-page="dashboard" onclick="goPage('dashboard')"><span class="ico">🗺</span> Live map</div>
+        <div class="nav-item" id="nav-history" data-page="history" onclick="goPage('history')"><span class="ico">📋</span> History</div>
+        <div class="nav-item" id="nav-visits" data-page="visits" onclick="goPage('visits')"><span class="ico">🏪</span> Store visits</div>
+        <div class="nav-item" id="nav-shops" data-page="shops" onclick="goPage('shops');loadShops()"><span class="ico">🗂</span> Shop registry</div>
+        <div class="nav-item" id="nav-distance" data-page="distance" onclick="goPage('distance')"><span class="ico">📏</span> Distance &amp; check-ins</div>
+        <div class="nav-item" id="nav-team" data-page="team" onclick="goPage('team')"><span class="ico">👥</span> Team</div>
+        <div class="nav-item" id="nav-track" style="display:none" data-page="track" onclick="goPage('track')"><span class="ico">📡</span> My tracking</div>
+        <div class="nav-item" data-page="settings" onclick="goPage('settings')"><span class="ico">⚙️</span> Settings</div>
+      </nav>
+      <div class="sb-user">
+        <div class="sb-av" id="sb-av">?</div>
+        <div style="flex:1;overflow:hidden">
+          <div class="sb-uname" id="sb-uname">...</div>
+          <div class="sb-email" id="sb-email">...</div>
+        </div>
+        <button class="sb-logout" onclick="doLogout()" title="Sign out">⏏</button>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <div class="topbar">
+        <div class="page-title" id="page-title">Live map</div>
+        <div class="status-pill"><div class="sdot on pulse" id="sdot"></div><span id="slabel">Connected</span></div>
+      </div>
+
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-lbl">Team online</div><div class="stat-val stat-green" id="stat-online">0</div><div class="stat-sub">of <span id="stat-total">0</span> salespeople</div></div>
+            <div class="stat-card"><div class="stat-lbl">Pings today</div><div class="stat-val stat-blue" id="stat-pings">0</div><div class="stat-sub">GPS pings received</div></div>
+            <div class="stat-card"><div class="stat-lbl">Last update</div><div class="stat-val stat-amber" id="stat-last" style="font-size:20px;margin-top:6px">—</div><div class="stat-sub">Most recent ping</div></div>
+            <div class="stat-card"><div class="stat-lbl">Interval</div><div class="stat-val stat-blue" id="stat-interval" style="font-size:24px;margin-top:6px">30s</div><div class="stat-sub">tracking frequency</div></div>
+          </div>
+          <div class="map-layout">
+            <div class="map-card">
+              <div class="map-empty" id="map-empty"><div class="ico">🗺</div><p>Waiting for salesperson location data</p></div>
+              <iframe id="admin-map" style="display:none" allowfullscreen loading="lazy"></iframe>
+            </div>
+            <div class="person-list">
+              <div class="pl-header"><span class="pl-title">Sales team</span><span class="pl-badge" id="online-badge">0 online</span></div>
+              <div class="pl-body" id="person-list"><div style="padding:24px;color:var(--muted);font-size:12px;text-align:center;font-family:var(--mono)">No salespeople tracking yet</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div class="page" id="page-history">
+          <div class="hist-filters">
+            <select class="hfin" id="hist-person"><option value="">All salespeople</option></select>
+            <input class="hfin" type="date" id="hist-date"/>
+            <button class="hfbtn" onclick="loadHistory()">Load</button>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Name</th><th>Time</th><th>Latitude</th><th>Longitude</th><th>Accuracy</th><th>Map</th></tr></thead>
+            <tbody id="history-body"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">Select a date and click Load</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- STORE VISITS -->
+        <div class="page" id="page-visits">
+          <div class="hist-filters">
+            <select class="hfin" id="visit-person"><option value="">All salespeople</option></select>
+            <input class="hfin" type="date" id="visit-date"/>
+            <select class="hfin" id="visit-type-filter">
+              <option value="">All types</option>
+              <option value="new">New visits only</option>
+              <option value="revisit">Revisits only</option>
+            </select>
+            <button class="hfbtn" onclick="loadVisits()">Load</button>
+            <button class="hfbtn green" onclick="exportVisitsCSV()">⬇ Export CSV</button>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>Salesperson</th><th>Shop code</th><th>Store</th><th>Type</th>
+              <th>Visit kind</th><th>Mobile</th><th>Area</th>
+              <th>Purchase</th><th>Leg dist.</th><th>Time</th><th>GPS / Photo</th>
+            </tr></thead>
+            <tbody id="visits-body"><tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">Select a date and click Load</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SHOPS REGISTRY -->
+        <div class="page" id="page-shops">
+          <div class="hist-filters">
+            <input class="hfin" type="text" id="shop-search" placeholder="Search by code or name..." oninput="filterShops(this.value)" style="min-width:220px"/>
+            <button class="hfbtn" onclick="loadShops()">Refresh</button>
+            <button class="hfbtn green" onclick="exportShopsCSV()">⬇ Export CSV</button>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>Shop code</th><th>Store name</th><th>Contact</th><th>Mobile</th>
+              <th>Area</th><th>Registered by</th><th>Total visits</th><th>Last visit</th><th>GPS</th><th>Edit code</th>
+            </tr></thead>
+            <tbody id="shops-body"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">Click Refresh to load shops</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DISTANCE & CHECKINS -->
+        <div class="page" id="page-distance">
+          <div class="hist-filters">
+            <select class="hfin" id="dist-person"><option value="">All salespeople</option></select>
+            <input class="hfin" type="date" id="dist-date"/>
+            <button class="hfbtn" onclick="loadDistanceData()">Load</button>
+            <button class="hfbtn green" onclick="exportDistanceCSV()">⬇ Export CSV</button>
+          </div>
+
+          <!-- Summary cards -->
+          <div id="dist-summary" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px"></div>
+
+          <!-- Tabs inside distance page -->
+          <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:16px">
+            <div class="dtab active" onclick="switchDTab('legs')" style="flex:1;padding:11px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s" id="dtab-legs">📏 Distance legs</div>
+            <div class="dtab" onclick="switchDTab('checkins')" style="flex:1;padding:11px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s" id="dtab-checkins">📍 Check-ins</div>
+          </div>
+
+          <div id="dtabcontent-legs">
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Salesperson</th><th>Leg</th><th>Distance</th><th>From (lat,lng)</th><th>To (lat,lng)</th><th>Time</th></tr></thead>
+              <tbody id="legs-body"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">Select a date and click Load</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="dtabcontent-checkins" style="display:none">
+            <div class="tbl-wrap">
+              <table><thead><tr><th>Salesperson</th><th>Shop code</th><th>Store</th><th>Type</th><th>Time</th><th>GPS</th></tr></thead>
+              <tbody id="checkins-body"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">Select a date and click Load</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEAM -->
+        <div class="page" id="page-team">
+          <div class="settings-sec">
+            <h3>👥 Registered team members</h3>
+            <div id="team-list"><div style="color:var(--muted);font-size:13px">Loading...</div></div>
+            <button style="margin-top:16px;padding:10px 20px;background:linear-gradient(135deg,var(--green2),var(--green));color:#000;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer" onclick="exportTeamCSV()">⬇ Export team list (CSV)</button>
+          </div>
+          <div class="settings-sec">
+            <h3>📤 Share app with salesperson</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Share this link — they open it on their phone, register and start tracking.</p>
+            <div class="code-box" id="share-url">Loading...<button class="copy-btn" onclick="copyShare()">Copy</button></div>
+          </div>
+        </div>
+
+        <!-- SALESPERSON TRACKING -->
+        <div class="page" id="page-track">
+          <div class="settings-sec">
+            <h3>📡 My live tracking</h3>
+            <div style="height:280px;border-radius:10px;overflow:hidden;margin-bottom:18px;border:1px solid var(--border);background:#06080f;position:relative">
+              <div id="track-ph" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted)"><div style="font-size:36px;opacity:0.3">📡</div><div style="font-size:12px;font-family:var(--mono)">Press Start to share location</div></div>
+              <iframe id="track-map" style="width:100%;height:100%;border:none;display:none" allowfullscreen></iframe>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+              <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--g1);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Latitude</div><div style="font-size:13px;font-family:var(--mono)" id="t-lat">—</div></div>
+              <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--g1);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Longitude</div><div style="font-size:13px;font-family:var(--mono)" id="t-lng">—</div></div>
+              <div style="background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;padding:12px"><div style="font-size:9px;color:var(--g1);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Pings sent</div><div style="font-size:13px;font-family:var(--mono);color:var(--green)" id="t-count">0</div></div>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button id="btn-start-track" onclick="startTracking()" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--green2),var(--green));color:#000;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">▶ Start tracking</button>
+              <button id="btn-stop-track" onclick="stopTracking()" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--red),#c0003c);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:none">■ Stop tracking</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="page" id="page-settings">
+          <div class="settings-sec">
+            <h3>⏱ Tracking interval</h3>
+            <div class="setting-row"><div><div class="setting-lbl">GPS ping frequency</div><div class="setting-desc">How often location is sent to server</div></div>
+              <select class="setting-select" id="interval-select" onchange="saveInterval()">
+                <option value="15000">Every 15 seconds</option><option value="30000" selected>Every 30 seconds</option>
+                <option value="60000">Every 1 minute</option><option value="300000">Every 5 minutes</option>
+              </select>
+            </div>
+            <div class="setting-row"><div><div class="setting-lbl">High accuracy GPS</div><div class="setting-desc">Uses more battery, better accuracy</div></div>
+              <label class="toggle-wrap"><input type="checkbox" id="toggle-acc" checked/><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+          <div class="settings-sec">
+            <h3>💾 Export today's data</h3>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Download all GPS pings from today as CSV.</p>
+            <button onclick="exportCSV()" style="padding:10px 22px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">⬇ Export location history CSV</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO MODAL -->
+<div id="photo-modal" onclick="this.style.display='none'" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.9);backdrop-filter:blur(10px);cursor:pointer;display:none;align-items:center;justify-content:center;padding:20px">
+  <img id="photo-modal-img" style="max-width:90%;max-height:90%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5)"/>
+  <div style="position:absolute;top:16px;right:20px;color:#fff;font-size:24px;cursor:pointer;background:rgba(227,30,36,0.3);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center">✕</div>
+</div>
+
+<!-- ROUTE TRACE OVERLAY -->
+<div class="route-overlay" id="route-overlay">
+  <div class="route-header">
+    <div class="route-header-left">
+      <div class="tav" id="route-av" style="width:34px;height:34px;font-size:13px">?</div>
+      <div>
+        <h3 id="route-name">Salesperson Route</h3>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="route-date">Today</div>
+      </div>
+    </div>
+    <button class="route-close" onclick="closeRoute()">✕ Close</button>
+  </div>
+
+  <div class="route-stats">
+    <div class="route-stat">
+      <div class="route-stat-lbl">Total distance</div>
+      <div class="route-stat-val green" id="route-dist">—</div>
+    </div>
+    <div class="route-stat">
+      <div class="route-stat-lbl">Locations logged</div>
+      <div class="route-stat-val" id="route-points">—</div>
+    </div>
+    <div class="route-stat">
+      <div class="route-stat-lbl">Visits / Check-ins</div>
+      <div class="route-stat-val" id="route-visits">—</div>
+    </div>
+    <div class="route-stat">
+      <div class="route-stat-lbl">Active since</div>
+      <div class="route-stat-val" id="route-since" style="font-size:14px">—</div>
+    </div>
+  </div>
+
+  <div class="route-map">
+    <div id="routeMap"></div>
+  </div>
+
+  <div class="route-timeline" id="route-timeline">
+    <div style="color:var(--muted);font-size:12px;text-align:center;padding:10px;font-family:var(--mono)">Loading route data...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+window.addEventListener('error',e=>console.error('App error:',e.message));
+window.addEventListener('unhandledrejection',e=>console.error('Promise rejection:',e.reason));
+
+// ── Firebase ─────────────────────────────────
+const PREBAKED={apiKey:"AIzaSyBkX-0rCCA-RuZfHh_NP1O9IkSSDxTMbSo",authDomain:"salestrack-gps.firebaseapp.com",projectId:"salestrack-gps",appId:"1:630046662623:web:3e42b7fca19d96962c2e6a"};
+firebase.initializeApp(PREBAKED);
+const auth=firebase.auth(), db=firebase.firestore();
+
+// ── State ─────────────────────────────────────
+let currentUser=null, userRole=null, userName=null;
+let watchId=null, pingInterval=null, trackPings=0;
+let allLocations={}, teamMembers={}, unsubLocs=null;
+let selectedPerson=null, authBusy=false;
+let trackIntervalMs=30000;
+
+// ── Auth state ────────────────────────────────
+auth.onAuthStateChanged(user=>{
+  if(user){ currentUser=user; db.collection('users').doc(user.uid).get().then(doc=>{ if(doc.exists){const d=doc.data();userRole=d.role;userName=d.name;launchApp();}else auth.signOut(); }); }
+  else{ document.getElementById('auth-screen').style.display='flex'; document.getElementById('app').style.display='none'; }
+});
+
+// ── Auth actions ──────────────────────────────
+function showReg(){document.getElementById('lf').style.display='none';document.getElementById('rf').style.display='block';}
+function showLogin(){document.getElementById('rf').style.display='none';document.getElementById('lf').style.display='block';}
+
+function setBusy(id,busy,label){const b=document.getElementById(id);b.disabled=busy;b.textContent=busy?'Please wait...':label;}
+
+function doLogin(){
+  if(authBusy)return;
+  const email=document.getElementById('login-email').value.trim(), pass=document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent='';
+  if(!email||!pass){document.getElementById('login-err').textContent='Fill all fields.';return;}
+  authBusy=true; setBusy('btn-login',true,'Sign in →');
+  const timer=setTimeout(()=>{authBusy=false;setBusy('btn-login',false,'Sign in →');document.getElementById('login-err').textContent='Connection timeout. Check internet.';},12000);
+  auth.signInWithEmailAndPassword(email,pass).then(()=>clearTimeout(timer)).catch(e=>{clearTimeout(timer);document.getElementById('login-err').textContent=fErr(e.code);}).finally(()=>{authBusy=false;setBusy('btn-login',false,'Sign in →');});
+}
+function doRegister(){
+  if(authBusy)return;
+  const name=document.getElementById('reg-name').value.trim(),email=document.getElementById('reg-email').value.trim(),pass=document.getElementById('reg-pass').value,role=document.getElementById('reg-role').value;
+  document.getElementById('reg-err').textContent='';
+  if(!name||!email||!pass){document.getElementById('reg-err').textContent='Fill all fields.';return;}
+  authBusy=true; setBusy('btn-register',true,'Create account →');
+  const timer=setTimeout(()=>{authBusy=false;setBusy('btn-register',false,'Create account →');document.getElementById('reg-err').textContent='Timeout. Check internet.';},12000);
+  auth.createUserWithEmailAndPassword(email,pass).then(cred=>db.collection('users').doc(cred.user.uid).set({name,email,role,createdAt:firebase.firestore.FieldValue.serverTimestamp()})).then(()=>clearTimeout(timer)).catch(e=>{clearTimeout(timer);document.getElementById('reg-err').textContent=fErr(e.code);}).finally(()=>{authBusy=false;setBusy('btn-register',false,'Create account →');});
+}
+function doLogout(){stopTracking();if(unsubLocs)unsubLocs();auth.signOut();}
+function fErr(c){const m={'auth/invalid-email':'Invalid email.','auth/user-not-found':'No account found.','auth/wrong-password':'Wrong password.','auth/invalid-credential':'Incorrect email or password.','auth/email-already-in-use':'Email already registered — sign in instead.','auth/weak-password':'Password must be at least 6 characters.','auth/network-request-failed':'No internet connection.'};return m[c]||('Error: '+c);}
+
+// ── Launch app ────────────────────────────────
+function launchApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('sb-role').textContent=userRole==='admin'?'Admin / Manager':'Salesperson';
+  document.getElementById('sb-uname').textContent=userName;
+  document.getElementById('sb-email').textContent=currentUser.email;
+  document.getElementById('sb-av').textContent=(userName||'?')[0].toUpperCase();
+  document.getElementById('share-url').innerHTML=window.location.href+'<button class="copy-btn" onclick="copyShare()">Copy</button>';
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('hist-date').value=today;
+  document.getElementById('visit-date').value=today;
+  document.getElementById('dist-date').value=today;
+  if(userRole==='admin'){
+    document.getElementById('nav-history').style.display='flex';
+    document.getElementById('nav-visits').style.display='flex';
+    document.getElementById('nav-shops').style.display='flex';
+    document.getElementById('nav-distance').style.display='flex';
+    document.getElementById('nav-team').style.display='flex';
+    document.getElementById('nav-track').style.display='none';
+    subscribeLocations(); loadTeam(); goPage('dashboard');
+  } else {
+    document.getElementById('nav-history').style.display='none';
+    document.getElementById('nav-visits').style.display='none';
+    document.getElementById('nav-shops').style.display='none';
+    document.getElementById('nav-distance').style.display='none';
+    document.getElementById('nav-team').style.display='none';
+    document.getElementById('nav-track').style.display='flex';
+    goPage('track');
+  }
+}
+
+// ── Page nav ──────────────────────────────────
+function goPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
+  const titles={dashboard:'Live map',history:'Location history',visits:'Store visits',shops:'Shop registry',distance:'Distance & check-ins',team:'Team',track:'My tracking',settings:'Settings'};
+  document.getElementById('page-title').textContent=titles[id]||id;
+  if(id==='team')renderTeam();
+}
+
+// ── Live locations subscription ───────────────
+function subscribeLocations(){
+  if(unsubLocs)unsubLocs();
+  unsubLocs=db.collection('locations').onSnapshot(snap=>{
+    snap.forEach(doc=>{allLocations[doc.id]=doc.data();});
+    renderPersonList(); updateStats();
+  });
+}
+
+function renderPersonList(){
+  const body=document.getElementById('person-list');
+  const entries=Object.entries(allLocations);
+  if(!entries.length){body.innerHTML='<div style="padding:24px;color:var(--muted);font-size:12px;text-align:center;font-family:var(--mono)">No salespeople tracking yet</div>';return;}
+  const now=Date.now();
+  let online=0;
+  body.innerHTML=entries.sort((a,b)=>(b[1].timestamp?.toMillis()||0)-(a[1].timestamp?.toMillis()||0)).map(([uid,loc])=>{
+    const ts=loc.timestamp?.toMillis()||0;
+    const isOn=(now-ts)<3*60*1000; if(isOn)online++;
+    const time=ts?new Date(ts).toLocaleTimeString():'—';
+    const sel=selectedPerson===uid?'selected':'';
+    return `<div class="person-item ${sel}" onclick="selectPerson('${uid}')">
+      <div class="pi-name">${loc.name||'Unknown'}<span class="${isOn?'badge-on':'badge-off'}">${isOn?'● Online':'Offline'}</span></div>
+      <div class="pi-coords">📍 ${loc.lat?.toFixed(5)||'—'}, ${loc.lng?.toFixed(5)||'—'}</div>
+      <div class="pi-time">Last seen: ${time}${loc.totalDistanceKm?'  ·  📏 '+loc.totalDistanceKm.toFixed(1)+' km':''}</div>
+      ${loc.lastAction?`<div style="font-size:10px;color:var(--greenbright);margin-top:3px;font-family:var(--mono)">📌 ${loc.lastAction}</div>`:''}
+      <button onclick="event.stopPropagation();openRoute('${uid}','${(loc.name||'').replace(/'/g,'')}')" style="margin-top:6px;padding:5px 12px;background:rgba(227,30,36,0.12);border:1px solid rgba(227,30,36,0.25);color:var(--g1);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%">🗺 View today's route</button>
+    </div>`;
+  }).join('');
+  document.getElementById('online-badge').textContent=online+' online';
+}
+
+function selectPerson(uid){
+  selectedPerson=uid; renderPersonList();
+  const loc=allLocations[uid];
+  if(loc?.lat&&loc?.lng){
+    document.getElementById('map-empty').style.display='none';
+    const fr=document.getElementById('admin-map'); fr.style.display='block';
+    fr.src=`https://maps.google.com/maps?q=${loc.lat},${loc.lng}&z=16&output=embed`;
+  }
+}
+
+function updateStats(){
+  const entries=Object.values(allLocations);
+  const now=Date.now();
+  const online=entries.filter(l=>(now-(l.timestamp?.toMillis()||0))<3*60*1000);
+  document.getElementById('stat-online').textContent=online.length;
+  document.getElementById('stat-total').textContent=entries.length;
+  const todayStart=new Date();todayStart.setHours(0,0,0,0);
+  db.collection('location_history').where('timestamp','>=',firebase.firestore.Timestamp.fromDate(todayStart)).get().then(snap=>{document.getElementById('stat-pings').textContent=snap.size;}).catch(()=>{});
+  if(entries.length){const latest=entries.sort((a,b)=>(b.timestamp?.toMillis()||0)-(a.timestamp?.toMillis()||0))[0];const ts=latest.timestamp?.toMillis()||0;document.getElementById('stat-last').textContent=ts?new Date(ts).toLocaleTimeString():'—';}
+}
+
+// ── Team ──────────────────────────────────────
+function loadTeam(){
+  db.collection('users').get().then(snap=>{
+    teamMembers={};
+    const hs=document.getElementById('hist-person'), vs=document.getElementById('visit-person'), ds=document.getElementById('dist-person');
+    hs.innerHTML='<option value="">All salespeople</option>';
+    vs.innerHTML='<option value="">All salespeople</option>';
+    ds.innerHTML='<option value="">All salespeople</option>';
+    snap.forEach(doc=>{const d=doc.data();teamMembers[doc.id]=d;if(d.role==='salesperson'){const o=document.createElement('option');o.value=doc.id;o.textContent=d.name;hs.appendChild(o);vs.appendChild(o.cloneNode(true));ds.appendChild(o.cloneNode(true));}});
+  });
+}
+function renderTeam(){
+  const list=document.getElementById('team-list');
+  const entries=Object.entries(teamMembers);
+  if(!entries.length){list.innerHTML='<div style="color:var(--muted);font-size:13px">Loading...</div>';loadTeam();return;}
+  list.innerHTML=entries.map(([uid,u])=>{
+    const created=u.createdAt?.toDate?u.createdAt.toDate().toLocaleDateString():'—';
+    return `<div class="team-row">
+      <div class="team-av">${(u.name||'?')[0].toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="team-name">${u.name||'—'}</div>
+        <div class="team-info">📱 ${u.mobile||u.email||'—'} · Joined ${created}</div>
+      </div>
+      <span class="role-badge ${u.role==='admin'?'role-admin':'role-sales'}">${u.role}</span>
+    </div>`;
+  }).join('');
+}
+function exportTeamCSV(){
+  const entries=Object.entries(teamMembers);
+  if(!entries.length){showToast('No team data');return;}
+  const rows=[['Name','Mobile','Email','Role','Joined','User ID']];
+  entries.forEach(([uid,u])=>{const c=u.createdAt?.toDate?u.createdAt.toDate().toISOString():'';rows.push([u.name||'',u.mobile||'',u.email||'',u.role||'',c,uid]);});
+  dlCSV(rows,'team_accounts_'+new Date().toISOString().split('T')[0]+'.csv');
+  showToast('Team list exported ✓');
+}
+
+// ── History ───────────────────────────────────
+function loadHistory(){
+  const dateVal=document.getElementById('hist-date').value, personId=document.getElementById('hist-person').value;
+  if(!dateVal){showToast('Pick a date first');return;}
+  const start=new Date(dateVal);start.setHours(0,0,0,0);
+  const end=new Date(dateVal);end.setHours(23,59,59,999);
+  let q=db.collection('location_history').where('timestamp','>=',firebase.firestore.Timestamp.fromDate(start)).where('timestamp','<=',firebase.firestore.Timestamp.fromDate(end)).orderBy('timestamp','desc').limit(500);
+  if(personId)q=q.where('uid','==',personId);
+  q.get().then(snap=>{
+    const body=document.getElementById('history-body');
+    if(snap.empty){body.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">No data found</td></tr>';return;}
+    body.innerHTML=snap.docs.map(doc=>{const d=doc.data();const t=d.timestamp?.toDate?d.timestamp.toDate().toLocaleTimeString():'—';return `<tr><td><strong>${d.name||'—'}</strong></td><td class="mono">${t}</td><td class="mono">${d.lat?.toFixed(6)||'—'}</td><td class="mono">${d.lng?.toFixed(6)||'—'}</td><td class="mono">±${Math.round(d.accuracy||0)}m</td><td><a class="tbl-link" href="https://maps.google.com/maps?q=${d.lat},${d.lng}" target="_blank">↗ Map</a></td></tr>`;}).join('');
+  }).catch(e=>showToast('Error: '+e.message));
+}
+
+// ── Visits ────────────────────────────────────
+function loadVisits(){
+  const dateVal=document.getElementById('visit-date').value, personId=document.getElementById('visit-person').value;
+  const typeFilter=document.getElementById('visit-type-filter').value;
+  if(!dateVal){showToast('Pick a date first');return;}
+  const start=new Date(dateVal);start.setHours(0,0,0,0);
+  const end=new Date(dateVal);end.setHours(23,59,59,999);
+  let q=personId?db.collection('visits').where('salespersonUid','==',personId):db.collection('visits');
+  q.get().then(snap=>{
+    const body=document.getElementById('visits-body');
+    let rows=snap.docs.map(d=>d.data()).filter(d=>{const t=d.timestamp?.toDate?.();return t&&t>=start&&t<=end;});
+    if(typeFilter==='new') rows=rows.filter(d=>d.isNewVisit);
+    else if(typeFilter==='revisit') rows=rows.filter(d=>d.isRevisit);
+    rows=rows.sort((a,b)=>(b.timestamp?.toMillis()||0)-(a.timestamp?.toMillis()||0));
+    if(!rows.length){body.innerHTML='<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">No visits found</td></tr>';return;}
+    const tagC={'General':'#6b8ab0','Follow up':'#ffaa00','Conversion':'#66bb6a','Complaint':'#e31e24','Payment collection':'#e31e24'};
+    body.innerHTML=rows.map(d=>{
+      const t=d.timestamp?.toDate?.()?.toLocaleTimeString()||'—';
+      const tc=tagC[d.visitType]||'#6b8ab0';
+      return `<tr>
+        <td><strong>${d.salesperson||'—'}</strong></td>
+        <td><span style="font-family:var(--mono);font-size:11px;color:var(--g1)">${d.shopCode||'—'}</span></td>
+        <td>${d.storeName||'—'}</td>
+        <td><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${tc}22;color:${tc};font-weight:700">${d.visitType||'—'}</span></td>
+        <td>${d.isRevisit?'🔄 Revisit':'🆕 New'}</td>
+        <td class="mono">${d.mobileNo||'—'}</td>
+        <td>${d.locationArea||'—'}</td>
+        <td style="font-size:11px">${d.presentPurchase?'📦 '+d.presentPurchase+'<br>':''} ${d.sellingPrice?'💰 '+d.sellingPrice:''}</td>
+        <td class="mono">${d.legDistanceKm?d.legDistanceKm.toFixed(2)+' km':'—'}</td>
+        <td class="mono">${t}</td>
+        <td><a class="tbl-link" href="https://maps.google.com/maps?q=${d.lat},${d.lng}" target="_blank">${d.lat?.toFixed(4)||'—'} ↗</a>${d.photo?'<br><img src="'+d.photo+'" onclick="showPhotoModal(this.src)" style="width:60px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);cursor:pointer;margin-top:4px" title="Click to enlarge"/>':''}</td>
+      </tr>`;
+    }).join('');
+  }).catch(e=>showToast('Error: '+e.message));
+}
+function exportVisitsCSV(){
+  const dateVal=document.getElementById('visit-date').value||new Date().toISOString().split('T')[0];
+  const start=new Date(dateVal);start.setHours(0,0,0,0);
+  const end=new Date(dateVal);end.setHours(23,59,59,999);
+  db.collection('visits').get().then(snap=>{
+    const rows=snap.docs.map(d=>d.data()).filter(d=>{const t=d.timestamp?.toDate?.();return t&&t>=start&&t<=end;}).sort((a,b)=>(a.timestamp?.toMillis()||0)-(b.timestamp?.toMillis()||0));
+    if(!rows.length){showToast('No visits to export');return;}
+    const hdr=[['Salesperson','Mobile','Shop Code','Store','Contact','Store Mobile','Area','Visit Type','New/Revisit','Purchase','Price','Credit Period','Outstanding','Birds Qty','Leg Distance(km)','Total Distance(km)','Notes','Latitude','Longitude','Timestamp']];
+    const data=rows.map(d=>[d.salesperson,d.salespersonMobile,d.shopCode,d.storeName,d.contactName,d.mobileNo,d.locationArea,d.visitType,d.isRevisit?'Revisit':'New Visit',d.presentPurchase,d.sellingPrice,d.creditPeriod,d.creditOutstanding,d.weeklyBirdsQty,d.legDistanceKm?.toFixed(3)||''  ,d.totalDistanceKm?.toFixed(3)||'',d.notes,d.lat,d.lng,d.timestamp?.toDate?.()?.toISOString()||''  ]);
+    dlCSV([...hdr,...data],'store_visits_'+dateVal+'.csv');
+    showToast('Visits exported ✓');
+  });
+}
+// ── Shop registry ─────────────────────────────
+let allShops=[];
+function loadShops(){
+  db.collection('shops').get().then(snap=>{
+    allShops=snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+    renderShops(allShops);
+  }).catch(e=>showToast('Error loading shops: '+e.message));
+}
+function filterShops(val){
+  if(!val){renderShops(allShops);return;}
+  const v=val.toLowerCase();
+  renderShops(allShops.filter(s=>(s.shopCode||'').toLowerCase().includes(v)||(s.storeName||'').toLowerCase().includes(v)||(s.locationArea||'').toLowerCase().includes(v)));
+}
+function renderShops(shops){
+  const body=document.getElementById('shops-body');
+  if(!shops.length){body.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px;font-family:var(--mono)">No shops found</td></tr>';return;}
+  body.innerHTML=shops.map(s=>{
+    const lastVisit=s.lastVisit?.toDate?.()?.toLocaleDateString()||'—';
+    return `<tr>
+      <td><span style="font-family:var(--mono);font-size:12px;color:var(--g1);font-weight:700">${s.shopCode||'—'}</span></td>
+      <td><strong>${s.storeName||'—'}</strong></td>
+      <td>${s.contactName||'—'}</td>
+      <td class="mono">${s.mobileNo||'—'}</td>
+      <td>${s.locationArea||'—'}</td>
+      <td>${s.registeredBy||'—'}</td>
+      <td style="text-align:center"><strong>${s.visitCount||1}</strong></td>
+      <td class="mono">${lastVisit}</td>
+      <td><a class="tbl-link" href="https://maps.google.com/maps?q=${s.lat},${s.lng}" target="_blank">${s.lat?.toFixed(4)||'—'} ↗</a></td>
+      <td><button onclick="editShopCode('${s.shopCode}')" style="background:rgba(227,30,36,0.1);border:1px solid var(--border2);color:var(--g1);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">✏ Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+function editShopCode(oldCode){
+  const newCode=prompt(`Edit shop code for ${oldCode}:`,oldCode);
+  if(!newCode||newCode===oldCode)return;
+  const clean=newCode.trim().toUpperCase();
+  if(!clean){showToast('Invalid code');return;}
+  const batch=db.batch();
+  batch.update(db.collection('shops').doc(oldCode),{shopCode:clean});
+  db.collection('visits').where('shopCode','==',oldCode).get().then(snap=>{
+    snap.forEach(doc=>batch.update(doc.ref,{shopCode:clean}));
+    return batch.commit();
+  }).then(()=>{showToast(`Code updated: ${oldCode} → ${clean}`);loadShops();}).catch(e=>showToast('Error: '+e.message));
+}
+function exportShopsCSV(){
+  if(!allShops.length){showToast('Load shops first');return;}
+  const hdr=[['Shop Code','Store Name','Contact','Mobile','Area','Registered By','Total Visits','Registered At','Last Visit','Latitude','Longitude']];
+  const data=allShops.map(s=>[s.shopCode,s.storeName,s.contactName,s.mobileNo,s.locationArea,s.registeredBy,s.visitCount||1,s.registeredAt?.toDate?.()?.toISOString()||'',s.lastVisit?.toDate?.()?.toISOString()||'',s.lat,s.lng]);
+  dlCSV([...hdr,...data],'shop_registry_'+new Date().toISOString().split('T')[0]+'.csv');
+  showToast('Shops exported ✓');
+}
+// ── Distance & check-ins ──────────────────────
+function loadDistanceData(){
+  const dateVal=document.getElementById('dist-date').value, personId=document.getElementById('dist-person').value;
+  if(!dateVal){showToast('Pick a date first');return;}
+  const start=new Date(dateVal);start.setHours(0,0,0,0);
+  const end=new Date(dateVal);end.setHours(23,59,59,999);
+  const startTs=firebase.firestore.Timestamp.fromDate(start);
+  const endTs=firebase.firestore.Timestamp.fromDate(end);
+  let lq=db.collection('distance_logs').where('timestamp','>=',startTs).where('timestamp','<=',endTs).orderBy('timestamp','asc');
+  if(personId) lq=lq.where('uid','==',personId);
+  lq.get().then(snap=>{
+    const legs=snap.docs.map(d=>d.data());
+    const summary={};
+    legs.forEach(l=>{if(!summary[l.name])summary[l.name]={name:l.name,total:0,legs:0};summary[l.name].total+=l.distanceKm||0;summary[l.name].legs++;});
+    const se=Object.values(summary);
+    document.getElementById('dist-summary').innerHTML=se.length?se.map(s=>`<div class="stat-card"><div class="stat-lbl">${s.name}</div><div class="stat-val stat-green">${s.total.toFixed(2)} km</div><div class="stat-sub">${s.legs} segments</div></div>`).join(''): '<div style="color:var(--muted);font-size:13px;font-family:var(--mono)">No movement data</div>';
+    if(!legs.length){document.getElementById('legs-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No data</td></tr>';return;}
+    let ln={};
+    document.getElementById('legs-body').innerHTML=legs.map(d=>{if(!ln[d.name])ln[d.name]=0;ln[d.name]++;const t=d.timestamp?.toDate?.()?.toLocaleTimeString()||'—';return `<tr><td><strong>${d.name||'—'}</strong></td><td>Leg ${ln[d.name]}</td><td class="mono" style="color:var(--amber)">${(d.distanceKm||0).toFixed(3)} km</td><td class="mono">${d.fromLat?.toFixed(5)||'—'}, ${d.fromLng?.toFixed(5)||'—'}</td><td class="mono">${d.toLat?.toFixed(5)||'—'}, ${d.toLng?.toFixed(5)||'—'}</td><td class="mono">${t}</td></tr>`;}).join('');
+  }).catch(e=>showToast('Error: '+e.message));
+  let cq=db.collection('checkins').where('timestamp','>=',startTs).where('timestamp','<=',endTs).orderBy('timestamp','desc');
+  if(personId) cq=cq.where('uid','==',personId);
+  cq.get().then(snap=>{
+    if(!snap.size){document.getElementById('checkins-body').innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No check-ins</td></tr>';return;}
+    const tagC={'new_visit':'#66bb6a','revisit':'#ffaa00'};
+    document.getElementById('checkins-body').innerHTML=snap.docs.map(doc=>{const d=doc.data(),t=d.timestamp?.toDate?.()?.toLocaleTimeString()||'—';const tc=tagC[d.type]||'#6b8ab0';return `<tr><td><strong>${d.salesperson||'—'}</strong></td><td><span style="font-family:var(--mono);font-size:11px;color:var(--g1)">${d.shopCode||'—'}</span></td><td>${d.storeName||'—'}</td><td><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:${tc}22;color:${tc};font-weight:700">${d.type==='revisit'?'🔄 Revisit':'🆕 New'}</span></td><td class="mono">${t}</td><td><a class="tbl-link" href="https://maps.google.com/maps?q=${d.lat},${d.lng}" target="_blank">${d.lat?.toFixed(4)||'—'} ↗</a></td></tr>`;}).join('');
+  }).catch(()=>{});
+}
+function exportDistanceCSV(){
+  const dateVal=document.getElementById('dist-date').value||new Date().toISOString().split('T')[0];
+  const start=new Date(dateVal);start.setHours(0,0,0,0);
+  const end=new Date(dateVal);end.setHours(23,59,59,999);
+  db.collection('distance_logs').where('timestamp','>=',firebase.firestore.Timestamp.fromDate(start)).where('timestamp','<=',firebase.firestore.Timestamp.fromDate(end)).orderBy('timestamp','asc').get().then(snap=>{
+    if(!snap.size){showToast('No data to export');return;}
+    const hdr=[['Salesperson','Distance(km)','From Lat','From Lng','To Lat','To Lng','Timestamp']];
+    const data=snap.docs.map(d=>{const r=d.data();return[r.name,r.distanceKm?.toFixed(3)||0,r.fromLat,r.fromLng,r.toLat,r.toLng,r.timestamp?.toDate?.()?.toISOString()||''];});
+    dlCSV([...hdr,...data],'distance_log_'+dateVal+'.csv');showToast('Distance log exported ✓');
+  });
+}
+function switchDTab(name){
+  ['legs','checkins'].forEach(n=>{
+    const tab=document.getElementById('dtab-'+n);
+    tab.style.color=n===name?'#fff':'var(--muted)';
+    tab.style.borderBottomColor=n===name?'var(--g1)':'transparent';
+    document.getElementById('dtabcontent-'+n).style.display=n===name?'block':'none';
+  });
+}
+
+// ── Salesperson tracking (for salesperson role) ─
+function startTracking(){
+  if(!navigator.geolocation){showToast('GPS not available');return;}
+  document.getElementById('btn-start-track').style.display='none';
+  document.getElementById('btn-stop-track').style.display='block';
+  const opts={enableHighAccuracy:true,maximumAge:10000,timeout:15000};
+  watchId=navigator.geolocation.watchPosition(onPos,()=>showToast('GPS error'),opts);
+  pingInterval=setInterval(()=>navigator.geolocation.getCurrentPosition(onPos,()=>{},opts),trackIntervalMs);
+  showToast('📡 Tracking started');
+}
+function stopTracking(){
+  if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(pingInterval){clearInterval(pingInterval);pingInterval=null;}
+  document.getElementById('btn-start-track').style.display='block';
+  document.getElementById('btn-stop-track').style.display='none';
+}
+function onPos(pos){
+  const{latitude:lat,longitude:lng,accuracy}=pos.coords;
+  const ts=firebase.firestore.FieldValue.serverTimestamp();
+  db.collection('locations').doc(currentUser.uid).set({lat,lng,accuracy,name:userName,email:currentUser.email,uid:currentUser.uid,timestamp:ts});
+  db.collection('location_history').add({lat,lng,accuracy,name:userName,email:currentUser.email,uid:currentUser.uid,timestamp:ts});
+  trackPings++;
+  document.getElementById('t-lat').textContent=lat.toFixed(6);
+  document.getElementById('t-lng').textContent=lng.toFixed(6);
+  document.getElementById('t-count').textContent=trackPings;
+  document.getElementById('track-ph').style.display='none';
+  const fr=document.getElementById('track-map');fr.style.display='block';fr.src=`https://maps.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+}
+
+// ── Settings ──────────────────────────────────
+function saveInterval(){trackIntervalMs=parseInt(document.getElementById('interval-select').value);document.getElementById('stat-interval').textContent=trackIntervalMs>=60000?(trackIntervalMs/60000)+'m':(trackIntervalMs/1000)+'s';showToast('Interval updated');}
+
+// ── Export CSV ────────────────────────────────
+function exportCSV(){
+  const today=new Date();today.setHours(0,0,0,0);
+  db.collection('location_history').where('timestamp','>=',firebase.firestore.Timestamp.fromDate(today)).orderBy('timestamp','asc').get().then(snap=>{
+    if(snap.empty){showToast('No data for today');return;}
+    const rows=[['Name','Email','Timestamp','Latitude','Longitude','Accuracy_m']];
+    snap.forEach(doc=>{const d=doc.data();rows.push([d.name,d.email,d.timestamp?.toDate?.()?.toISOString()||'',d.lat,d.lng,Math.round(d.accuracy||0)]);});
+    dlCSV(rows,'location_history_'+new Date().toISOString().split('T')[0]+'.csv');
+    showToast('CSV exported ✓');
+  });
+}
+
+// ── Helpers ───────────────────────────────────
+function dlCSV(rows,filename){
+  const csv=rows.map(r=>r.map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=filename;a.click();
+}
+function copyShare(){navigator.clipboard?.writeText(window.location.href).then(()=>showToast('Link copied!')).catch(()=>showToast('Copy failed'));}
+// ── Photo modal ───────────────────────────────
+function showPhotoModal(src){
+  const modal=document.getElementById('photo-modal');
+  document.getElementById('photo-modal-img').src=src;
+  modal.style.display='flex';
+}
+
+// ── Route tracing ─────────────────────────────
+let routeMap=null, routeLayer=null;
+
+function openRoute(uid, name){
+  const overlay=document.getElementById('route-overlay');
+  overlay.classList.add('show');
+  document.getElementById('route-name').textContent=name+"'s Route";
+  document.getElementById('route-av').textContent=(name||'?')[0].toUpperCase();
+  document.getElementById('route-date').textContent='Today · '+new Date().toLocaleDateString();
+  document.getElementById('route-timeline').innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px;font-family:var(--mono)">Loading route data...</div>';
+
+  // Initialize or reset map - must wait for overlay to be visible
+  setTimeout(()=>{
+    if(!routeMap){
+      routeMap=L.map('routeMap',{zoomControl:true}).setView([20.5,78.9],5);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© OpenStreetMap',
+        maxZoom:19
+      }).addTo(routeMap);
+    } else {
+      routeMap.invalidateSize();
+    }
+    if(routeLayer){routeMap.removeLayer(routeLayer);}
+    routeLayer=L.layerGroup().addTo(routeMap);
+
+    // Force map to recalculate size multiple times (overlay animation)
+    setTimeout(()=>routeMap.invalidateSize(),200);
+    setTimeout(()=>routeMap.invalidateSize(),500);
+
+    const todayStart=new Date(); todayStart.setHours(0,0,0,0);
+
+    // Fetch ALL location history for this person, then filter today in JS
+    // This avoids needing a Firestore composite index
+    db.collection('location_history')
+      .where('uid','==',uid)
+      .get().then(snap=>{
+        // Filter for today and sort by time
+        const allDocs=snap.docs.map(d=>d.data());
+        const todayDocs=allDocs.filter(d=>{
+          const t=d.timestamp?.toDate?.();
+          return t && t>=todayStart;
+        }).sort((a,b)=>(a.timestamp?.toMillis()||0)-(b.timestamp?.toMillis()||0));
+
+        if(!todayDocs.length){
+          document.getElementById('route-points').textContent='0';
+          document.getElementById('route-dist').textContent='0 km';
+          document.getElementById('route-visits').textContent='0';
+          document.getElementById('route-since').textContent='—';
+          document.getElementById('route-timeline').innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px;font-family:var(--mono)">No location data found for today.<br>Make sure the salesperson has started tracking.</div>';
+          return;
+        }
+
+        const points=todayDocs.map(d=>({lat:d.lat,lng:d.lng,time:d.timestamp?.toDate?.()}))
+          .filter(p=>p.lat&&p.lng&&p.time);
+
+        if(!points.length){
+          document.getElementById('route-timeline').innerHTML='<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px">No valid GPS points found</div>';
+          return;
+        }
+
+        const latlngs=points.map(p=>[p.lat,p.lng]);
+
+        // Start marker (green circle)
+        L.marker(latlngs[0],{icon:L.divIcon({
+          html:'<div style="width:18px;height:18px;background:#43a047;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>',
+          iconSize:[18,18],iconAnchor:[9,9],className:''
+        })}).addTo(routeLayer).bindPopup('<strong>🟢 Day started here</strong><br>'+points[0].time.toLocaleTimeString());
+
+        // End marker (red circle)
+        L.marker(latlngs[latlngs.length-1],{icon:L.divIcon({
+          html:'<div style="width:18px;height:18px;background:#e31e24;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>',
+          iconSize:[18,18],iconAnchor:[9,9],className:''
+        })}).addTo(routeLayer).bindPopup('<strong>🔴 Current / Last position</strong><br>'+points[points.length-1].time.toLocaleTimeString());
+
+        // ── OSRM road-snapped route ──────────────────
+        // Use OSRM Route API to get actual road path and distance
+        document.getElementById('route-dist').textContent='Calculating road distance...';
+
+        // Haversine fallback distance
+        let haversineDist=0;
+        for(let i=1;i<points.length;i++){
+          haversineDist+=haversine(points[i-1].lat,points[i-1].lng,points[i].lat,points[i].lng);
+        }
+
+        // Sample points — OSRM route API allows ~100 waypoints max
+        // Take key waypoints evenly spaced, always including first and last
+        let waypoints=[];
+        if(points.length<=25){
+          waypoints=points;
+        } else {
+          const step=Math.floor(points.length/23);
+          waypoints=[points[0]];
+          for(let i=step;i<points.length-1;i+=step){
+            waypoints.push(points[i]);
+          }
+          waypoints.push(points[points.length-1]);
+        }
+
+        // Build OSRM coordinate string (lng,lat;lng,lat format)
+        const coordStr=waypoints.map(p=>p.lng.toFixed(6)+','+p.lat.toFixed(6)).join(';');
+        const osrmUrl=`https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=full&geometries=geojson&steps=false`;
+
+        console.log('OSRM request:',osrmUrl);
+        console.log('Waypoints:',waypoints.length,'of',points.length,'total GPS points');
+
+        fetch(osrmUrl)
+          .then(r=>{
+            if(!r.ok) throw new Error('HTTP '+r.status);
+            return r.json();
+          })
+          .then(osrmData=>{
+            console.log('OSRM response:',osrmData.code,osrmData);
+            if(osrmData.code==='Ok' && osrmData.routes && osrmData.routes.length>0){
+              const route=osrmData.routes[0];
+              const roadDistKm=route.distance/1000; // meters to km
+              const roadCoords=route.geometry.coordinates.map(c=>[c[1],c[0]]); // [lat,lng]
+
+              // Draw road route with gradient color
+              if(roadCoords.length>1){
+                for(let i=1;i<roadCoords.length;i++){
+                  const progress=i/roadCoords.length;
+                  const r=Math.round(46+(227-46)*progress);
+                  const g=Math.round(125+(30-125)*progress);
+                  const b=Math.round(50+(36-50)*progress);
+                  L.polyline([roadCoords[i-1],roadCoords[i]],{
+                    color:`rgb(${r},${g},${b})`,
+                    weight:5, opacity:0.9
+                  }).addTo(routeLayer);
+                }
+              }
+
+              // Update stats with ROAD distance
+              document.getElementById('route-dist').textContent=roadDistKm.toFixed(2)+' km (road)';
+              document.getElementById('route-points').textContent=points.length+' GPS pts';
+
+              // Show comparison tooltip
+              const distEl=document.getElementById('route-dist');
+              distEl.title='Road distance: '+roadDistKm.toFixed(2)+' km | Straight-line: '+haversineDist.toFixed(2)+' km';
+
+              // Fit map to road route
+              if(roadCoords.length>0){
+                routeMap.fitBounds(L.latLngBounds(roadCoords),{padding:[40,40]});
+              }
+
+              // Update timeline with road distance
+              setTimeout(()=>{
+                const lastItem=document.querySelector('.rt-item:last-child .rt-sub');
+                if(lastItem) lastItem.textContent=roadDistKm.toFixed(2)+' km covered (road distance)';
+              },1000);
+            } else {
+              console.warn('OSRM no routes found, code:',osrmData.code);
+              drawFallbackRoute(latlngs, haversineDist);
+            }
+            setTimeout(()=>routeMap.invalidateSize(),300);
+          })
+          .catch(err=>{
+            console.error('OSRM fetch error:',err);
+            drawFallbackRoute(latlngs, haversineDist);
+          });
+
+        document.getElementById('route-since').textContent=points[0].time.toLocaleTimeString();
+
+        // Fit map initially to GPS bounds (OSRM will re-fit when it loads)
+        routeMap.fitBounds(L.latLngBounds(latlngs),{padding:[40,40]});
+        setTimeout(()=>routeMap.invalidateSize(),300);
+
+        // Fetch visits for this person today and overlay them
+        db.collection('visits')
+          .where('salespersonUid','==',uid)
+          .get().then(vsnap=>{
+            const todayVisits=vsnap.docs.map(d=>d.data()).filter(d=>{
+              const t=d.timestamp?.toDate?.();
+              return t&&t>=todayStart;
+            });
+
+            // Visit markers (diamonds)
+            todayVisits.forEach(v=>{
+              if(!v.lat||!v.lng) return;
+              const color=v.isRevisit?'#ff8f00':'#43a047';
+              L.marker([v.lat,v.lng],{icon:L.divIcon({
+                html:`<div style="width:22px;height:22px;background:${color};border:3px solid #fff;border-radius:4px;transform:rotate(45deg);box-shadow:0 2px 10px rgba(0,0,0,0.5)"></div>`,
+                iconSize:[22,22],iconAnchor:[11,11],className:''
+              })}).addTo(routeLayer).bindPopup(
+                `<strong>${v.storeName||'Visit'}</strong><br>` +
+                `${v.shopCode?'Code: '+v.shopCode+'<br>':''}` +
+                `${v.isRevisit?'🔄 Revisit':'🆕 New visit'}<br>` +
+                `${v.visitType||''}<br>` +
+                `${v.timestamp?.toDate?.()?.toLocaleTimeString()||''}`
+              );
+            });
+
+            document.getElementById('route-visits').textContent=todayVisits.length;
+
+            // Build timeline
+            const timelineItems=[];
+            timelineItems.push({time:points[0].time,type:'start',label:'📡 Tracking started',sub:'Day started'});
+            todayVisits.forEach(v=>{
+              timelineItems.push({
+                time:v.timestamp?.toDate?.(),
+                type:v.isRevisit?'revisit':'visit',
+                label:(v.isRevisit?'🔄 Revisit: ':'🆕 New: ')+(v.storeName||'Unknown'),
+                sub:(v.shopCode||'')+(v.locationArea?' · '+v.locationArea:'')
+              });
+            });
+            timelineItems.push({time:points[points.length-1].time,type:'current',label:'📍 Last known position',sub:totalDist.toFixed(2)+' km covered'});
+            timelineItems.sort((a,b)=>(a.time?.getTime()||0)-(b.time?.getTime()||0));
+
+            document.getElementById('route-timeline').innerHTML=timelineItems.map(item=>{
+              const dotClass=item.type==='visit'||item.type==='revisit'?'visit':item.type==='checkin'?'checkin':'';
+              return `<div class="rt-item">
+                <div class="rt-dot ${dotClass}"></div>
+                <div class="rt-time">${item.time?.toLocaleTimeString()||'—'}</div>
+                <div><div class="rt-label">${item.label}</div>${item.sub?`<div class="rt-sub">${item.sub}</div>`:''}</div>
+              </div>`;
+            }).join('');
+          }).catch(e=>console.error('Visits overlay error:',e));
+
+      }).catch(e=>{
+        console.error('Route load error:',e);
+        document.getElementById('route-timeline').innerHTML=`<div style="color:var(--red);font-size:12px;text-align:center;padding:16px">Error loading route: ${e.message}<br><br><span style="color:var(--muted)">This may be a Firestore permissions issue. Check your security rules.</span></div>`;
+      });
+  },150); // delay to let overlay become visible first
+}
+
+function closeRoute(){
+  document.getElementById('route-overlay').classList.remove('show');
+}
+
+// Fallback: draw straight-line route if OSRM fails
+function drawFallbackRoute(latlngs, dist){
+  for(let i=1;i<latlngs.length;i++){
+    const progress=i/latlngs.length;
+    const r=Math.round(46+(227-46)*progress);
+    const g=Math.round(125+(30-125)*progress);
+    const b=Math.round(50+(36-50)*progress);
+    L.polyline([latlngs[i-1],latlngs[i]],{
+      color:`rgb(${r},${g},${b})`,
+      weight:4, opacity:0.7, dashArray:'8 6'
+    }).addTo(routeLayer);
+  }
+  document.getElementById('route-dist').textContent=dist.toFixed(2)+' km (approx)';
+  document.getElementById('route-points').textContent=latlngs.length;
+  showToast('Road routing unavailable — showing approximate path');
+}
+
+// ── Haversine distance ────────────────────────
+function haversine(lat1,lon1,lat2,lon2){
+  const R=6371;
+  const dLat=(lat2-lat1)*Math.PI/180;
+  const dLon=(lon2-lon1)*Math.PI/180;
+  const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+</body>
+</html>
