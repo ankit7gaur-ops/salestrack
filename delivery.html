@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>SalesTrack Delivery</title>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#060b12"/>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#060b12;--surface:#0d1520;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);--text:#f0f4f8;--muted:#7a8ea5;--g1:#e31e24;--g2:#c41219;--green:#2e7d32;--green2:#43a047;--greenbright:#66bb6a;--amber:#ff8f00;--font:'Plus Jakarta Sans',sans-serif;--mono:'JetBrains Mono',monospace}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 10% -10%,rgba(227,30,36,0.08) 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 95% 5%,rgba(46,125,50,0.08) 0%,transparent 55%)}
+.brand-strip{position:relative;z-index:10;display:flex;align-items:center;justify-content:center;gap:24px;padding:12px 20px;background:rgba(6,11,24,0.98);border-bottom:1px solid var(--border2)}
+.brand-strip::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--green),var(--g1),var(--green),transparent);opacity:0.6}
+.brand-strip img{height:28px;width:auto;object-fit:contain}
+.brand-div{width:1px;height:20px;background:var(--border2)}
+.brand-text{font-size:13px;font-weight:800;letter-spacing:.06em;color:#fff}
+#auth-screen{position:relative;z-index:5;min-height:calc(100vh - 53px);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-card{width:100%;max-width:420px;background:rgba(13,21,38,0.9);backdrop-filter:blur(30px);border:1px solid var(--border2);border-radius:20px;padding:36px 28px;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,0.5)}
+.auth-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),var(--g1));border-radius:20px 20px 0 0}
+.auth-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;box-shadow:0 8px 32px rgba(46,125,50,0.3)}
+.auth-title{font-size:24px;font-weight:800;text-align:center;margin-bottom:4px}
+.auth-sub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;font-family:var(--mono)}
+.flabel{display:block;font-size:11px;font-weight:600;color:var(--green2);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;font-family:var(--mono)}
+.finput{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:11px 14px;font-size:14px;outline:none;font-family:var(--font);margin-bottom:12px;transition:all .2s}
+.finput:focus{border-color:var(--green2);box-shadow:0 0 0 3px rgba(67,160,71,0.12)}
+.finput::placeholder{color:var(--muted);opacity:.6}
+.fbtn{width:100%;padding:13px;margin-top:4px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--font);box-shadow:0 8px 30px rgba(46,125,50,0.25)}
+.fbtn:disabled{opacity:.6;cursor:not-allowed}
+.ferr{color:var(--g1);font-size:12px;margin-top:8px;text-align:center;min-height:16px}
+#app{display:none;min-height:calc(100vh - 53px);flex-direction:column;position:relative;z-index:5}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(9,16,32,0.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
+.tl{display:flex;align-items:center;gap:10px}
+.tav{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--green2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.tname{font-weight:700;font-size:14px}
+.trole{font-size:10px;color:var(--green2);font-family:var(--mono)}
+.tlogout{background:rgba(227,30,36,0.12);border:1px solid rgba(227,30,36,0.25);color:var(--g1);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;background:rgba(9,16,32,0.95);border-bottom:1px solid var(--border)}
+.st{padding:10px 14px;border-right:1px solid var(--border)}.st:last-child{border-right:none}
+.st-lbl{font-size:9px;font-weight:600;color:var(--green2);letter-spacing:.07em;text-transform:uppercase;font-family:var(--mono);margin-bottom:3px}
+.st-val{font-size:16px;font-weight:700;font-family:var(--mono)}
+.tabs{display:flex;background:rgba(9,16,32,0.95);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:13px 0;text-align:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;position:relative}
+.tab::after{content:'';position:absolute;bottom:0;left:15%;right:15%;height:2px;background:linear-gradient(90deg,var(--green),var(--green2));border-radius:2px;opacity:0}
+.tab.active{color:#fff}.tab.active::after{opacity:1}
+.tabcontent{display:none;padding:16px}.tabcontent.active{display:block}
+.card{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.card.pending::before{background:var(--amber)}.card.delivered::before{background:var(--greenbright)}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.card-name{font-weight:700;font-size:14px}
+.card-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:700}
+.card-row{font-size:12px;color:var(--muted);margin-bottom:3px}
+.card-actions{display:flex;gap:8px;margin-top:10px}
+.card-btn{flex:1;padding:8px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)}
+.card-btn.nav{background:linear-gradient(135deg,var(--green),var(--green2));color:#fff}
+.card-btn.done{background:linear-gradient(135deg,var(--amber),#f57c00);color:#fff}
+.card-btn.call{background:rgba(255,255,255,0.06);border:1px solid var(--border2);color:var(--text)}
+.odo-sec{padding:12px 16px;background:rgba(9,16,32,0.7);border-bottom:1px solid var(--border)}
+.odo-row{display:flex;gap:8px;align-items:stretch}
+.odo-box{flex:1;background:rgba(255,255,255,0.03);border:1px dashed var(--border2);border-radius:10px;padding:8px;text-align:center;cursor:pointer}
+.odo-box.done{border-style:solid;border-color:var(--green2)}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);background:rgba(9,16,32,0.97);backdrop-filter:blur(20px);border:1px solid var(--border2);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<div class="brand-strip">
+  <img src="logo-suguna.png" alt="Suguna" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('span'),{textContent:'SUGUNA FOODS',className:'brand-text'}),this)"/>
+  <div class="brand-div"></div>
+  <img src="logo-praxis.png" alt="Praxis" onerror="this.parentNode.replaceChild(Object.assign(document.createElement('span'),{textContent:'PRAXIS GLOBAL',className:'brand-text'}),this)"/>
+</div>
+
+<div id="auth-screen">
+  <div class="auth-card" id="login-card">
+    <div class="auth-icon">&#x1F69B;</div>
+    <div class="auth-title">Delivery Tracker</div>
+    <div class="auth-sub">route &middot; deliver &middot; track</div>
+    <label class="flabel">Mobile number</label>
+    <input class="finput" type="tel" id="login-phone" placeholder="10-digit mobile" inputmode="numeric" maxlength="10"/>
+    <label class="flabel">Password</label>
+    <input class="finput" type="password" id="login-pass" placeholder="Password"/>
+    <button class="fbtn" id="btn-login" onclick="doLogin()">Sign in &#x2192;</button>
+    <div class="ferr" id="login-err"></div>
+    <div style="text-align:center;margin-top:12px"><span onclick="toggleAuth()" style="font-size:12px;color:var(--green2);cursor:pointer;font-weight:600">New driver? Create account</span></div>
+  </div>
+  <div class="auth-card" id="reg-card" style="display:none">
+    <div class="auth-icon">&#x1F4DD;</div>
+    <div class="auth-title">Register</div>
+    <div class="auth-sub">create your driver account</div>
+    <label class="flabel">Full name</label>
+    <input class="finput" type="text" id="reg-name" placeholder="Your full name"/>
+    <label class="flabel">Mobile number</label>
+    <input class="finput" type="tel" id="reg-phone" placeholder="10-digit mobile" inputmode="numeric" maxlength="10"/>
+    <label class="flabel">Password</label>
+    <input class="finput" type="password" id="reg-pass" placeholder="Min 6 characters"/>
+    <button class="fbtn" id="btn-reg" onclick="doRegister()">Create account &#x2192;</button>
+    <div class="ferr" id="reg-err"></div>
+    <div style="text-align:center;margin-top:12px"><span onclick="toggleAuth()" style="font-size:12px;color:var(--green2);cursor:pointer;font-weight:600">Already registered? Sign in</span></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="tl"><div class="tav" id="av">?</div><div><div class="tname" id="uname">...</div><div class="trole" id="urole">driver</div></div></div>
+    <button class="tlogout" onclick="doLogout()">Sign out</button>
+  </div>
+  <div class="stats">
+    <div class="st"><div class="st-lbl">Deliveries</div><div class="st-val" id="st-del">0/0</div></div>
+    <div class="st"><div class="st-lbl">Total birds</div><div class="st-val" id="st-birds">0</div></div>
+    <div class="st"><div class="st-lbl">Est. distance</div><div class="st-val" id="st-dist">--</div></div>
+  </div>
+  <div class="odo-sec">
+    <div style="font-size:10px;color:var(--green2);font-family:var(--mono);margin-bottom:6px">ODOMETER</div>
+    <div class="odo-row">
+      <div class="odo-box" id="odo-s-box" onclick="captureOdo('start')"><div id="odo-s-prev" style="font-size:11px;color:var(--muted)">&#x1F4F7; Start</div><input type="number" id="odo-s" placeholder="Start KM" onclick="event.stopPropagation()" style="width:100%;margin-top:4px;padding:5px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-size:12px;font-family:var(--mono);outline:none;text-align:center"/></div>
+      <div class="odo-box" id="odo-e-box" onclick="captureOdo('end')"><div id="odo-e-prev" style="font-size:11px;color:var(--muted)">&#x1F4F7; End</div><input type="number" id="odo-e" placeholder="End KM" onclick="event.stopPropagation()" style="width:100%;margin-top:4px;padding:5px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:6px;font-size:12px;font-family:var(--mono);outline:none;text-align:center"/></div>
+      <button onclick="saveOdo()" style="padding:8px 12px;background:linear-gradient(135deg,var(--green2),var(--green));color:#fff;border:none;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;align-self:center">Save</button>
+    </div>
+    <input type="file" id="odo-cam" accept="image/*" capture="environment" style="display:none" onchange="processOdoCam(event)"/>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('route')">&#x1F5FA; Route</div>
+    <div class="tab" onclick="switchTab('details')">&#x1F4CB; Trip</div>
+    <div class="tab" onclick="switchTab('history')">&#x1F4CA; History</div>
+  </div>
+  <div class="tabcontent active" id="tab-route">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700">Delivery stops</div>
+      <button onclick="openFullRoute()" style="padding:7px 14px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#x1F5FA; Full route</button>
+    </div>
+    <div id="stops-list"><div style="text-align:center;padding:30px;color:var(--muted);font-family:var(--mono)">No deliveries assigned today</div></div>
+  </div>
+  <div class="tabcontent" id="tab-details">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px">Trip information</div>
+    <div class="card">
+      <div class="card-row">Driver: <strong id="t-driver">--</strong></div>
+      <div class="card-row">Helper: <strong id="t-helper">--</strong></div>
+      <div class="card-row">Vehicle: <strong id="t-vehicle">--</strong></div>
+      <div class="card-row">Date: <strong id="t-date">--</strong></div>
+      <div class="card-row">Orders: <strong id="t-orders">--</strong></div>
+      <div class="card-row">Total birds: <strong id="t-birds">--</strong></div>
+    </div>
+  </div>
+  <div class="tabcontent" id="tab-history">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px">Past deliveries</div>
+    <div id="history-list"><div style="text-align:center;padding:30px;color:var(--muted);font-family:var(--mono)">No history</div></div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+window.addEventListener('unhandledrejection',function(e){e.preventDefault();});
+firebase.initializeApp({apiKey:"AIzaSyBkX-0rCCA-RuZfHh_NP1O9IkSSDxTMbSo",authDomain:"salestrack-gps.firebaseapp.com",projectId:"salestrack-gps",appId:"1:630046662623:web:3e42b7fca19d96962c2e6a"});
+var auth=firebase.auth(), db=firebase.firestore();
+var currentUser=null, userName='', userMobile='', todayDeliveries=[], routeDocRef=null;
+var odoStartPhoto=null, odoEndPhoto=null, currentOdoType=null;
+
+auth.onAuthStateChanged(function(user){
+  if(user){
+    currentUser=user;
+    db.collection('users').doc(user.uid).get().then(function(doc){
+      if(doc.exists){
+        var d=doc.data(); userName=d.name||''; userMobile=d.mobile||'';
+        document.getElementById('uname').textContent=userName;
+        document.getElementById('av').textContent=(userName||'?')[0].toUpperCase();
+        document.getElementById('urole').textContent=d.role||'driver';
+        document.getElementById('auth-screen').style.display='none';
+        document.getElementById('app').style.display='flex';
+        loadTodayRoute();
+      }
+    });
+  } else {
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+});
+
+function doLogin(){
+  var phone=document.getElementById('login-phone').value.trim();
+  var pass=document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent='';
+  if(!phone||!pass){document.getElementById('login-err').textContent='Fill all fields';return;}
+  if(!/^[0-9]{10}$/.test(phone)){document.getElementById('login-err').textContent='Enter 10-digit mobile';return;}
+  var btn=document.getElementById('btn-login'); btn.disabled=true; btn.textContent='Signing in...';
+  auth.signInWithEmailAndPassword(phone+'@salestrack.app',pass).catch(function(e){
+    document.getElementById('login-err').textContent=e.code==='auth/user-not-found'?'No account found':e.code==='auth/wrong-password'?'Wrong password':e.message;
+  }).finally(function(){btn.disabled=false;btn.textContent='Sign in \u2192';});
+}
+
+function toggleAuth(){
+  var l=document.getElementById('login-card'), r=document.getElementById('reg-card');
+  if(r.style.display==='none'){l.style.display='none';r.style.display='block';}
+  else{r.style.display='none';l.style.display='block';}
+}
+
+function doRegister(){
+  var name=document.getElementById('reg-name').value.trim();
+  var phone=document.getElementById('reg-phone').value.trim();
+  var pass=document.getElementById('reg-pass').value;
+  document.getElementById('reg-err').textContent='';
+  if(!name){document.getElementById('reg-err').textContent='Enter name';return;}
+  if(!/^[0-9]{10}$/.test(phone)){document.getElementById('reg-err').textContent='Enter 10-digit mobile';return;}
+  if(pass.length<6){document.getElementById('reg-err').textContent='Password min 6 chars';return;}
+  var btn=document.getElementById('btn-reg'); btn.disabled=true; btn.textContent='Creating...';
+  auth.createUserWithEmailAndPassword(phone+'@salestrack.app',pass).then(function(cred){
+    return db.collection('users').doc(cred.user.uid).set({name:name,mobile:phone,email:phone+'@salestrack.app',role:'driver',createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }).catch(function(e){
+    document.getElementById('reg-err').textContent=e.code==='auth/email-already-in-use'?'Already registered. Sign in.':e.message;
+  }).finally(function(){btn.disabled=false;btn.textContent='Create account \u2192';});
+}
+
+function doLogout(){auth.signOut();}
+
+function loadTodayRoute(){
+  var today=new Date().toISOString().split('T')[0];
+  // Try by UID, then phone, then name
+  db.collection('delivery_routes').where('driverUid','==',currentUser.uid).where('date','==',today).get().then(function(snap){
+    if(!snap.empty){processRoute(snap.docs[0]);return;}
+    return db.collection('delivery_routes').where('driverPhone','==',userMobile).where('date','==',today).get();
+  }).then(function(snap){
+    if(snap&&!snap.empty){processRoute(snap.docs[0]);return;}
+    return db.collection('delivery_routes').where('driverName','==',userName).where('date','==',today).get();
+  }).then(function(snap){
+    if(snap&&!snap.empty) processRoute(snap.docs[0]);
+    else document.getElementById('stops-list').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">No deliveries assigned for today.<br>Check with your admin.</div>';
+  });
+}
+
+function processRoute(doc){
+  routeDocRef=doc.ref;
+  var r=doc.data();
+  todayDeliveries=r.stops||[];
+  document.getElementById('t-driver').textContent=r.driverName||userName;
+  document.getElementById('t-helper').textContent=r.helperName||'--';
+  document.getElementById('t-vehicle').textContent=r.vehicleNo||'--';
+  document.getElementById('t-date').textContent=r.date||'--';
+  document.getElementById('t-orders').textContent=todayDeliveries.length;
+  var totalBirds=todayDeliveries.reduce(function(s,d){return s+(d.quantity||0);},0);
+  document.getElementById('t-birds').textContent=totalBirds;
+  document.getElementById('st-birds').textContent=totalBirds;
+  if(r.totalDistKm) document.getElementById('st-dist').textContent=r.totalDistKm.toFixed(1)+' km';
+  renderStops();
+}
+
+function renderStops(){
+  var delivered=todayDeliveries.filter(function(d){return d.delivered;}).length;
+  var total=todayDeliveries.length;
+  var allDone=delivered===total && total>0;
+  document.getElementById('st-del').textContent=delivered+'/'+total;
+
+  if(!total){
+    document.getElementById('stops-list').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">No stops assigned</div>';
+    return;
+  }
+
+  var isAccepted=localStorage.getItem('route_accepted_'+new Date().toISOString().split('T')[0]);
+  var totalBirds=todayDeliveries.reduce(function(s,d){return s+(d.quantity||0);},0);
+  var html='';
+
+  // NOT ACCEPTED YET - show summary + accept button
+  if(!isAccepted){
+    html+='<div style="background:rgba(255,143,0,0.08);border:1px solid rgba(255,143,0,0.3);border-radius:14px;padding:20px;text-align:center">';
+    html+='<div style="font-size:36px;margin-bottom:8px">&#x1F4E6;</div>';
+    html+='<div style="font-size:18px;font-weight:800;margin-bottom:6px">New Delivery Assigned</div>';
+    html+='<div style="font-size:13px;color:var(--muted);margin-bottom:16px">'+total+' shops &middot; '+totalBirds+' birds</div>';
+
+    for(var i=0;i<todayDeliveries.length;i++){
+      var s=todayDeliveries[i];
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-align:left">';
+      html+='<div style="min-width:28px;height:28px;border-radius:8px;background:var(--green2);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">'+(i+1)+'</div>';
+      html+='<div style="flex:1">';
+      html+='<div style="font-weight:700;font-size:13px">'+(s.shopName||'--')+'</div>';
+      html+='<div style="font-size:11px;color:var(--muted);margin-top:2px">'+(s.area||'--');
+      if(s.contactName) html+=' &middot; '+s.contactName;
+      html+='</div>';
+      html+='<div style="font-size:12px;margin-top:4px">&#x1F414; <strong>'+(s.quantity||0)+' birds</strong> &middot; Size: <strong>'+(s.birdSize||'--')+'</strong></div>';
+      html+='</div></div>';
+    }
+
+    html+='<button onclick="acceptRoute()" style="margin-top:16px;padding:16px;background:linear-gradient(135deg,var(--green),var(--green2));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;width:100%;box-shadow:0 8px 24px rgba(46,125,50,0.3)">&#x2705; Accept &amp; Start Deliveries</button>';
+    html+='</div>';
+    document.getElementById('stops-list').innerHTML=html;
+    return;
+  }
+
+  // ACCEPTED - show active delivery cards
+  for(var j=0;j<todayDeliveries.length;j++){
+    var stop=todayDeliveries[j];
+    var isDone=stop.delivered;
+
+    html+='<div class="card '+(isDone?'delivered':'pending')+'">';
+    html+='<div class="card-head"><div>';
+    html+='<div style="font-size:10px;color:var(--green2);font-family:var(--mono);margin-bottom:2px">STOP '+(j+1)+' of '+total+'</div>';
+    html+='<div class="card-name">'+(stop.shopName||'--')+'</div>';
+    html+='</div>';
+    html+='<span class="card-badge" style="background:'+(isDone?'rgba(67,160,71,0.15);color:#66bb6a':'rgba(255,143,0,0.15);color:#ff8f00')+'">'+(isDone?'&#x2705; Done':'&#x23F3; Pending')+'</span></div>';
+
+    html+='<div class="card-row">&#x1F3EA; '+(stop.shopCode||'--')+' &middot; &#x1F4CD; '+(stop.area||'--')+'</div>';
+    html+='<div class="card-row">&#x1F414; Birds: <strong>'+(stop.quantity||0)+'</strong> &middot; Size: <strong>'+(stop.birdSize||'--')+'</strong></div>';
+    if(stop.contactName) html+='<div class="card-row">&#x1F464; '+stop.contactName+' &middot; &#x1F4DE; '+(stop.mobile||'--')+'</div>';
+
+    if(isDone){
+      html+='<div style="margin-top:8px;padding:10px;background:rgba(67,160,71,0.08);border:1px solid rgba(67,160,71,0.2);border-radius:8px;font-size:12px;color:var(--greenbright)">';
+      html+='&#x2705; <strong>'+(stop.deliveryStatus||'Delivered')+'</strong>';
+      if(stop.deliveredAt) html+=' at '+new Date(stop.deliveredAt).toLocaleTimeString();
+      if(stop.actualQty) html+=' &middot; Actual: '+stop.actualQty+' birds';
+      if(stop.deliveryNotes) html+='<br>&#x1F4DD; '+stop.deliveryNotes;
+      html+='</div>';
+    } else {
+      html+='<div id="cf-'+j+'" style="display:none;margin-top:10px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px">';
+      html+='<div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px">Complete this delivery</div>';
+      html+='<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">ACTUAL BIRDS DELIVERED</div>';
+      html+='<input type="number" id="aq-'+j+'" value="'+(stop.quantity||'')+'" style="width:100%;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;font-family:var(--mono);outline:none"/></div>';
+      html+='<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">STATUS</div>';
+      html+='<select id="ds-'+j+'" style="width:100%;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;outline:none">';
+      html+='<option value="Full delivery">Full delivery</option><option value="Partial delivery">Partial delivery</option>';
+      html+='<option value="Rejected by shop">Rejected by shop</option><option value="Shop closed">Shop closed</option></select></div>';
+      html+='<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-bottom:4px">NOTES</div>';
+      html+='<input type="text" id="dn-'+j+'" placeholder="Any remarks..." style="width:100%;padding:8px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:13px;outline:none"/></div>';
+      html+='<button onclick="closeDelivery('+j+')" style="width:100%;padding:10px;background:linear-gradient(135deg,var(--amber),#f57c00);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">&#x2705; Submit &amp; Complete</button>';
+      html+='</div>';
+    }
+
+    html+='<div class="card-actions">';
+    html+='<button class="card-btn nav" onclick="navigateTo('+stop.lat+','+stop.lng+')">&#x1F5FA; Navigate</button>';
+    html+='<button class="card-btn call" onclick="callShop(\''+(stop.mobile||'')+'\')">&#x1F4DE; Call</button>';
+    if(!isDone) html+='<button class="card-btn done" onclick="toggleForm('+j+')">&#x1F4DD; Complete</button>';
+    html+='</div></div>';
+  }
+
+  // END TRIP button when all done
+  if(allDone){
+    html+='<div style="margin-top:16px;padding:20px;background:rgba(67,160,71,0.08);border:1px solid rgba(67,160,71,0.3);border-radius:14px;text-align:center">';
+    html+='<div style="font-size:32px;margin-bottom:8px">&#x1F389;</div>';
+    html+='<div style="font-size:16px;font-weight:800;color:var(--greenbright);margin-bottom:4px">All Deliveries Completed!</div>';
+    html+='<div style="font-size:12px;color:var(--muted);margin-bottom:16px">'+delivered+'/'+total+' stops done</div>';
+    html+='<button onclick="endTrip()" style="padding:14px;background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer;width:100%">&#x1F3C1; End Trip</button>';
+    html+='</div>';
+  }
+
+  document.getElementById('stops-list').innerHTML=html;
+}
+
+function acceptRoute(){
+  localStorage.setItem('route_accepted_'+new Date().toISOString().split('T')[0],'true');
+  if(routeDocRef) routeDocRef.update({acceptedAt:new Date().toISOString(),accepted:true});
+  toast('Route accepted!');
+  renderStops();
+}
+
+function toggleForm(idx){
+  var f=document.getElementById('cf-'+idx);
+  if(f) f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function closeDelivery(idx){
+  todayDeliveries[idx].delivered=true;
+  todayDeliveries[idx].deliveredAt=new Date().toISOString();
+  var aq=document.getElementById('aq-'+idx);
+  var ds=document.getElementById('ds-'+idx);
+  var dn=document.getElementById('dn-'+idx);
+  todayDeliveries[idx].actualQty=aq?aq.value:'';
+  todayDeliveries[idx].deliveryStatus=ds?ds.value:'Full delivery';
+  todayDeliveries[idx].deliveryNotes=dn?dn.value:'';
+  if(routeDocRef) routeDocRef.update({stops:todayDeliveries});
+  renderStops();
+  toast('Stop '+(idx+1)+' completed!');
+}
+
+function endTrip(){
+  if(routeDocRef) routeDocRef.update({tripEnded:true,tripEndedAt:new Date().toISOString()});
+  toast('Trip ended! Capture end odometer.');
+  document.getElementById('stops-list').innerHTML='<div style="text-align:center;padding:30px"><div style="font-size:36px;margin-bottom:8px">&#x1F3C1;</div><div style="font-size:18px;font-weight:800;color:var(--greenbright);margin-bottom:8px">Trip Completed!</div><div style="font-size:13px;color:var(--muted)">Capture your end odometer photo above.</div></div>';
+}
+
+function navigateTo(lat,lng){
+  if(!lat||!lng){toast('No location');return;}
+  window.open('https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng+'&travelmode=driving','_blank');
+}
+function callShop(m){if(!m){toast('No phone');return;}window.open('tel:'+m);}
+
+function openFullRoute(){
+  if(!todayDeliveries.length){toast('No stops');return;}
+  var pending=todayDeliveries.filter(function(d){return !d.delivered&&d.lat&&d.lng;});
+  if(!pending.length){toast('All done!');return;}
+  var url='https://www.google.com/maps/dir/Current+location';
+  pending.forEach(function(s){url+='/'+s.lat+','+s.lng;});
+  window.open(url,'_blank');
+}
+
+// Tabs
+function switchTab(name){
+  var tabs=['route','details','history'];
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',tabs[i]===name);});
+  document.querySelectorAll('.tabcontent').forEach(function(c){c.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='history') loadHistory();
+}
+
+function loadHistory(){
+  db.collection('delivery_routes').where('driverUid','==',currentUser.uid).limit(14).get().then(function(snap){
+    if(snap.empty){document.getElementById('history-list').innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)">No past deliveries</div>';return;}
+    document.getElementById('history-list').innerHTML=snap.docs.map(function(doc){
+      var r=doc.data();
+      var del=(r.stops||[]).filter(function(s){return s.delivered;}).length;
+      var tot=(r.stops||[]).length;
+      return '<div class="card '+(del===tot?'delivered':'pending')+'"><div class="card-head"><div class="card-name">'+r.date+'</div><span class="card-badge" style="background:'+(del===tot?'rgba(67,160,71,0.15);color:#66bb6a':'rgba(255,143,0,0.15);color:#ff8f00')+'">'+del+'/'+tot+'</span></div><div class="card-row">Vehicle: '+(r.vehicleNo||'--')+' &middot; Helper: '+(r.helperName||'--')+'</div></div>';
+    }).join('');
+  });
+}
+
+// Odometer
+function captureOdo(type){currentOdoType=type;document.getElementById('odo-cam').click();}
+function processOdoCam(event){
+  var file=event.target.files[0]; if(!file)return;
+  var type=currentOdoType;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var w=img.width,h=img.height,MAX=480;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      var compressed=c.toDataURL('image/jpeg',0.35);
+      if(type==='start') odoStartPhoto=compressed; else odoEndPhoto=compressed;
+      document.getElementById('odo-'+type[0]+'-prev').innerHTML='<img src="'+compressed+'" style="width:100%;max-height:50px;object-fit:cover;border-radius:4px"/>';
+      document.getElementById('odo-'+type[0]+'-box').classList.add('done');
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+  event.target.value='';
+}
+function saveOdo(){
+  var s=parseFloat(document.getElementById('odo-s').value);
+  var e=parseFloat(document.getElementById('odo-e').value);
+  if(!s&&s!==0){toast('Enter start KM');return;}
+  db.collection('delivery_odometer').add({
+    uid:currentUser.uid,name:userName,startKm:s,endKm:e||null,distance:e?(e-s):null,
+    startPhoto:odoStartPhoto,endPhoto:odoEndPhoto,
+    date:new Date().toISOString().split('T')[0],
+    timestamp:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(){toast('Odometer saved'+(e?' - '+(e-s).toFixed(1)+' km':''));});
+}
+
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3500);}
+</script>
+</body>
+</html>
